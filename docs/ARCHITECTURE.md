@@ -61,6 +61,18 @@ The choice is made once, in Settings, and stored in a single-row `AppSetting` SQ
 - On failure, the CLI's structured error (e.g. an account/org policy restriction) arrives as JSON on **stdout** with a non-zero exit code, not on stderr — code that only surfaces `stderr` on failure will show a useless bare exit code instead of the actual reason. See `describeClaudeCliFailure()`.
 - Structured output uses `--json-schema` (`{"type":"object", ...}` matching the schema built in `orchestrator.ts`) — the CLI returns a `structured_output` field on success, no manual JSON-parsing-and-retry needed.
 
+## Logs & data location
+
+TOFO keeps everything in the OS's per-user app-data directory, under the identifier `com.tofo.desktop`:
+
+| | Windows | macOS |
+|---|---|---|
+| Logs (`next-server.log`, app log) | `%LOCALAPPDATA%\com.tofo.desktop\logs\` | `~/Library/Logs/com.tofo.desktop/` |
+| Extracted server (Node runtime, `next-standalone.tar.gz` unpacked) | `%LOCALAPPDATA%\com.tofo.desktop\next-standalone\` | `~/Library/Application Support/com.tofo.desktop/next-standalone/` |
+| SQLite database | `...\next-standalone\apps\promptfarm\.promptfarm\promptfarm.db` (under the path above) | same, under the path above |
+
+Deleting that folder resets TOFO to a clean first-run state (equivalent to a fresh install).
+
 ## What's mocked, honestly
 
 See the README's status table. The graph, simulation ordering, persistence, and all three model providers are real. Some of the Final Report's generated content and individual agent opinions are still placeholder text (`FAKE_OPINION`, `FAKE_SUMMARIES` — searchable), being replaced incrementally. If you're picking up an issue, it's worth checking whether the surface you're touching is one of these before assuming existing behavior is intentional.

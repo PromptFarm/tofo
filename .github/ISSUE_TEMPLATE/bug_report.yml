@@ -1,0 +1,49 @@
+name: Bug report
+description: Something in TOFO doesn't work as expected
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - macOS
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: TOFO version
+      description: Shown in Settings, or the filename you downloaded (e.g. TOFO-0.1.0-windows-x64.zip)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Model provider (if relevant)
+      description: Only relevant for simulation/chat issues — behavior differs meaningfully between providers
+      options:
+        - Not applicable
+        - Ollama
+        - Claude API key
+        - Claude CLI
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: See docs/ARCHITECTURE.md for where TOFO's log file lives on your platform
+      render: shell

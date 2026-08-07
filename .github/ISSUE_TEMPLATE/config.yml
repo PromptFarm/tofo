@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/PromptFarm/tofo/discussions
+    about: For questions about how something works — not a bug or feature request
+  - name: Security vulnerability
+    url: https://github.com/PromptFarm/tofo/security/advisories/new
+    about: Please don't file security issues publicly — see SECURITY.md
