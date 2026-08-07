@@ -1,9 +1,10 @@
 name: CI
 
 # Runs on every PR: enforces the Conventional Commits format on the PR title
-# (type(scope): description — feat/fix/docs/chore/ci/test/refactor) and runs
-# promptfarm's test suite. This is separate from release.yml, which only
-# builds platform artifacts on manual trigger or a version tag.
+# (type(scope): description — feat/fix/docs/chore/ci/test/refactor), then
+# typechecks, lints, builds, and runs promptfarm's test suite as independent
+# required jobs. This is separate from release.yml, which only builds
+# platform (Tauri) artifacts on manual trigger or a version tag.
 on:
   pull_request:
     types: [opened, edited, synchronize]
@@ -30,6 +31,48 @@ jobs:
             chore
             ci
           requireScope: false
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: tsc --noEmit
+        run: pnpm --dir apps/promptfarm exec tsc --noEmit
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: eslint
+        run: pnpm --dir apps/promptfarm run lint
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: next build
+        run: pnpm --dir apps/promptfarm run build
 
   test:
     runs-on: ubuntu-latest

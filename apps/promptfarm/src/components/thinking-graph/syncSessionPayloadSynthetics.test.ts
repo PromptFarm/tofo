@@ -43,6 +43,8 @@ const payload: SyntheticGraphPayload = {
   intakeAnswers: [],
   pendingIntakeQuestions: [],
   runSummary: null,
+  recommendedSolutions: [],
+  proposedImprovements: [],
 };
 
 {

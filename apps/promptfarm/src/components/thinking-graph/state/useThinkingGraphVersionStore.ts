@@ -16,7 +16,7 @@ import type {
 import type { SerializedSimulationRun } from "@/lib/thinking-graph/server/types"
 import type { ChatUpdatedOpinion, RuntimeNodeStatus, SimulationRun } from "../runtime/runtimeTypes"
 
-type RecordSimpleRunInput = {
+export type RecordSimpleRunInput = {
   runId?: string
   prompt: string
   synthetics: SyntheticNode[]
@@ -30,7 +30,7 @@ type RecordSimpleRunInput = {
   chatUpdatedOpinions?: Record<string, ChatUpdatedOpinion>
 }
 
-type RecordBranchingRunInput = RecordSimpleRunInput & {
+export type RecordBranchingRunInput = RecordSimpleRunInput & {
   reason: string
 }
 
