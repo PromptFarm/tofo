@@ -4,11 +4,25 @@ TOFO is a simulated team for solo builders. You describe an idea, populate a gra
 
 It runs as a native desktop app on your own machine, talking to Claude (your subscription or an API key) or a local Ollama model — no account, no cloud backend.
 
+[![CI](https://github.com/PromptFarm/tofo/actions/workflows/ci.yml/badge.svg)](https://github.com/PromptFarm/tofo/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/PromptFarm/tofo)](https://github.com/PromptFarm/tofo/releases/latest)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue)
+[![Downloads](https://img.shields.io/github/downloads/PromptFarm/tofo/total)](https://github.com/PromptFarm/tofo/releases)
 
 ## Download
 
-Grab the latest release for your platform:
+**macOS:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/PromptFarm/tofo/main/install.sh | sh
+```
+
+**Windows** (PowerShell):
+```powershell
+irm https://raw.githubusercontent.com/PromptFarm/tofo/main/install.ps1 | iex
+```
+
+Or grab it manually from [the latest release](https://github.com/PromptFarm/tofo/releases/latest):
 
 - **Windows** — `TOFO-<version>-windows-x64.zip`. Extract it anywhere and run `TOFO.exe`. No installer, no admin rights.
 - **macOS** — `TOFO-<version>.dmg`. Open it and drag TOFO to Applications.
@@ -25,7 +39,7 @@ pnpm --dir apps/desktop tauri dev      # run in dev mode
 bash apps/desktop/scripts/package-portable-zip.sh   # build a portable Windows zip
 ```
 
-macOS/Linux builds go through `pnpm --dir apps/desktop exec tauri build` — see [.github/workflows/desktop-release.yml](.github/workflows/desktop-release.yml) for the exact CI steps.
+macOS builds go through `pnpm --dir apps/desktop exec tauri build --bundles dmg` — see [.github/workflows/release.yml](.github/workflows/release.yml) for the exact CI steps.
 
 ## How it's built
 
@@ -51,6 +65,10 @@ If something looks canned, it probably still is — check [docs/ARCHITECTURE.md]
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports and PRs welcome.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
