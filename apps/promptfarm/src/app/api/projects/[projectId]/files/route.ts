@@ -5,10 +5,9 @@ import {
   getProjectById,
   listProjectFiles,
 } from "@/lib/db-client";
-import {
-  createStorageAdminClient,
-  PROJECT_FILES_BUCKET,
-} from "@/lib/supabase/storage-admin";
+import { deleteProjectFile, saveProjectFile } from "@/lib/localFileStorage";
+
+const PROJECT_FILES_BUCKET = "local";
 
 const MAX_TEXT_FILE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set([".txt", ".md", ".markdown", ".json", ".csv"]);
@@ -161,31 +160,15 @@ export async function POST(
     const safeName = sanitizeFilename(candidate.name);
     const storagePath = `users/${user.id}/projects/${projectId}/files/${uploadId}/${safeName}`;
     const contentType = contentTypeFor(candidate);
-    const storage = createStorageAdminClient();
-    logUploadTiming("storage_client_ready", startedAt, {
-      bucket: PROJECT_FILES_BUCKET,
-    });
 
     const arrayBuffer = await candidate.arrayBuffer();
     logUploadTiming("array_buffer", startedAt);
 
-    const upload = await storage.storage
-      .from(PROJECT_FILES_BUCKET)
-      .upload(storagePath, arrayBuffer, {
-        contentType,
-        upsert: false,
-      });
+    await saveProjectFile(storagePath, arrayBuffer);
     logUploadTiming("storage_upload_finished", startedAt, {
       bucket: PROJECT_FILES_BUCKET,
       storagePath,
     });
-
-    if (upload.error) {
-      return NextResponse.json(
-        { error: upload.error.message || "Failed to upload file." },
-        { status: 500 },
-      );
-    }
 
     const file = await createProjectFile(user.id, projectId, {
       storageBucket: PROJECT_FILES_BUCKET,
@@ -194,15 +177,12 @@ export async function POST(
       contentType,
       sizeBytes: candidate.size,
     }).catch(async (error) => {
-      const cleanup = await storage.storage
-        .from(PROJECT_FILES_BUCKET)
-        .remove([storagePath]);
-      if (cleanup.error) {
+      await deleteProjectFile(storagePath).catch((cleanupError) => {
         console.error("[project-files][upload] cleanup failed", {
           storagePath,
-          error: cleanup.error,
+          error: cleanupError,
         });
-      }
+      });
       throw error;
     });
     logUploadTiming("db_record_created", startedAt, {

@@ -125,6 +125,9 @@ importers:
       dotenv:
         specifier: ^17.3.1
         version: 17.4.2
+      jiti:
+        specifier: ^2.4.2
+        version: 2.7.0
       prisma:
         specifier: ^7.7.0
         version: 7.9.1(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)

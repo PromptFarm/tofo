@@ -1,5 +1,5 @@
 import { listProjectFilesForContext } from "@/lib/db-client";
-import { createStorageAdminClient } from "@/lib/supabase/storage-admin";
+import { readProjectFile } from "@/lib/localFileStorage";
 
 const MAX_FILE_CONTEXT_CHARS = 24_000;
 const MAX_TOTAL_CONTEXT_CHARS = 64_000;
@@ -19,24 +19,22 @@ export async function buildProjectFilesContext(input: {
   const files = await listProjectFilesForContext(input.userId, projectId);
   if (files.length === 0) return null;
 
-  const storage = createStorageAdminClient();
   const sections: string[] = [];
   let remainingChars = MAX_TOTAL_CONTEXT_CHARS;
 
   for (const file of files) {
     if (remainingChars <= 0) break;
 
-    const downloaded = await storage.storage
-      .from(file.storageBucket)
-      .download(file.storagePath);
-
-    if (downloaded.error) {
+    let buffer: Buffer;
+    try {
+      buffer = await readProjectFile(file.storagePath);
+    } catch (error) {
       throw new Error(
-        `Failed to load project file "${file.originalName}": ${downloaded.error.message}`,
+        `Failed to load project file "${file.originalName}": ${error instanceof Error ? error.message : String(error)}`,
       );
     }
 
-    const text = await downloaded.data.text();
+    const text = buffer.toString("utf8");
     const fileBudget = Math.min(MAX_FILE_CONTEXT_CHARS, remainingChars);
     const content = truncateText(text, fileBudget);
     const section = [

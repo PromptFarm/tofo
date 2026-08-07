@@ -4,7 +4,7 @@ import {
   deleteProjectFileRecord,
   getProjectFileForUser,
 } from "@/lib/db-client";
-import { createStorageAdminClient } from "@/lib/supabase/storage-admin";
+import { deleteProjectFile } from "@/lib/localFileStorage";
 
 export async function DELETE(
   _request: Request,
@@ -21,14 +21,11 @@ export async function DELETE(
     return NextResponse.json({ error: "File not found" }, { status: 404 });
   }
 
-  const storage = createStorageAdminClient();
-  const remove = await storage.storage
-    .from(file.storageBucket)
-    .remove([file.storagePath]);
-
-  if (remove.error) {
+  try {
+    await deleteProjectFile(file.storagePath);
+  } catch (error) {
     return NextResponse.json(
-      { error: remove.error.message || "Failed to delete file from storage." },
+      { error: error instanceof Error ? error.message : "Failed to delete file from storage." },
       { status: 500 },
     );
   }
