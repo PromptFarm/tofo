@@ -192,12 +192,15 @@ export async function syncAppUser(userId: string, email: string): Promise<{ id: 
   const db = getDb();
   const now = nowIso();
 
-  const existing = db.prepare(`SELECT id FROM User WHERE id = ?`).get(userId) as { id: string } | undefined;
-  if (existing) {
-    db.prepare(`UPDATE User SET email = ?, updatedAt = ? WHERE id = ?`).run(email, now, userId);
-  } else {
-    db.prepare(`INSERT INTO User (id, email, createdAt, updatedAt) VALUES (?, ?, ?, ?)`).run(userId, email, now, now);
-  }
+  // A plain SELECT-then-INSERT races: next build's parallel page-data-
+  // collection workers (separate processes, separate connections) can both
+  // see "no row yet" and both try to INSERT the same seed user, and the
+  // loser hits a UNIQUE constraint on email. INSERT ... ON CONFLICT makes
+  // this atomic at the database level instead of racing in application code.
+  db.prepare(
+    `INSERT INTO User (id, email, createdAt, updatedAt) VALUES (?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET email = excluded.email, updatedAt = excluded.updatedAt`,
+  ).run(userId, email, now, now);
 
   return { id: userId, email };
 }

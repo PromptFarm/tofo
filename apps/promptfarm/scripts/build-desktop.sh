@@ -9,6 +9,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Warm the SQLite DB before next build's parallel page-data-collection
+# workers start — see scripts/warm-db.ts and package.json's `prebuild`
+# script for why. This script calls `next build` directly rather than
+# through `pnpm run build`, which bypasses that npm lifecycle hook, so
+# it has to be called explicitly here too.
+pnpm exec jiti scripts/warm-db.ts
+
 next build
 
 FLAT_APP_DIR=".next/standalone-flat/apps/promptfarm"
