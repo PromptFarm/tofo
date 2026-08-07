@@ -1,0 +1,91 @@
+name: Desktop release
+
+# Builds the TOFO desktop app (apps/desktop, Tauri) for Windows and macOS.
+#
+# Windows and macOS both need their own native toolchain (WebView2 /
+# WKWebView) — this repo's own build machine is Windows-only, so macOS
+# builds can only happen here in CI, not locally. Run manually any time via
+# "Run workflow", or push a `desktop-v*` tag to also attach the artifacts to
+# a GitHub Release.
+#
+# Distribution style matches Ouroboros: no installer. Windows ships as a
+# portable .zip (extract, run TOFO.exe — see package-portable-zip.sh)
+# rather than the NSIS installer this app used earlier; macOS ships as a
+# .dmg, which is already the native "drag to Applications" portable format,
+# so no equivalent script is needed there.
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - "desktop-v*"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Package portable zip
+        shell: bash
+        run: bash apps/desktop/scripts/package-portable-zip.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tofo-desktop-windows
+          path: apps/desktop/dist/*.zip
+          if-no-files-found: error
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build .dmg
+        run: pnpm --dir apps/desktop exec tauri build --bundles dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tofo-desktop-macos
+          path: apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**/*
+          draft: true
