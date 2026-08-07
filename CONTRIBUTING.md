@@ -21,6 +21,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together
 - Add or update tests for anything in `apps/promptfarm/src` that isn't UI-only.
 - Run `pnpm --dir apps/promptfarm test` before opening the PR.
 - Describe *why*, not just *what*, in the PR description — the reviewer can read the diff.
+- **PR title must follow [Conventional Commits](https://www.conventionalcommits.org/):** `type(scope): description`, e.g. `fix(desktop): handle missing Node.js gracefully` or `feat(settings): add Gemini provider`. CI checks this automatically. Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`. Scope is optional but encouraged (`desktop`, `promptfarm`, `settings`, `ci`, ...).
 
 ## Reporting bugs
 
