@@ -1,0 +1,137 @@
+{
+  "task": "Flow Runner — привязка creation-flow.json к коду",
+  "goal": "creation-flow.json управляет реальным выполнением. Каждый шаг — зарегистрированная TypeScript-функция. Runner — async generator с очередью. handleLaunch вызывает runner.",
+
+  "steps": [
+    {
+      "id": "1",
+      "title": "Типы",
+      "file": "src/app/projects/flow/types.ts",
+      "what": [
+        "FlowCtx — контекст который передаётся между шагами",
+        "StepFn — тип функции шага: (ctx: FlowCtx) => Promise<FlowCtx>",
+        "StepRecord — запись в очереди: { stepId, startedAt, timeoutMs, status }",
+        "StepTick — то что yield-ит генератор: { stepId, ctx, durationMs, skipped? }",
+        "FlowStep — тип одного шага из JSON: { id, enabled, requires, provides, timeoutMs, onError, type? }"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "2",
+      "title": "Шаги — отдельные функции",
+      "file": "src/app/projects/flow/steps.ts",
+      "what": [
+        "draftStep(ctx) — POST /api/projects/draft, возвращает ctx с projectId",
+        "uploadFilesStep(ctx) — POST /api/projects/{id}/files × N",
+        "nameStep(ctx) — POST /api/projects/name + PATCH /api/projects/{id}/name",
+        "sessionStep(ctx) — POST /api/thinking-graph/session + PUT /api/projects/{id}/session",
+        "activateStep(ctx) — PATCH /api/projects/{id}/status",
+        "intakeStreamStep(ctx) — streamThinkingGraphIntakeQuestions, возвращает ctx с intakeQuestions",
+        "intakeSaveStep(ctx) — saveThinkingGraphIntakeAnswers + saveProjectThinkingGraphSession",
+        "redirectStep(ctx) — router.push с autostart+personas params",
+        "directorConfirmStep(ctx) — PATCH /api/thinking-graph/director",
+        "runSimulationStep(ctx) — actions.startThinkingRun()"
+      ],
+      "note": "intake-ui — особый шаг типа 'user', не функция а сигнал. Runner ждёт ctx.intakeAnswers через промис из ctx.onIntakeReady.",
+      "dependsOn": ["1"]
+    },
+    {
+      "id": "3",
+      "title": "Реестр шагов",
+      "file": "src/app/projects/flow/registry.ts",
+      "what": [
+        "STEPS: Record<string, StepFn> — маппинг id → функция",
+        "Все шаги из steps.ts зарегистрированы здесь",
+        "Если id из JSON не найден в реестре — throw на старте, не в рантайме"
+      ],
+      "dependsOn": ["2"]
+    },
+    {
+      "id": "4",
+      "title": "Runner — async generator",
+      "file": "src/app/projects/flow/runner.ts",
+      "what": [
+        "runFlow(steps: FlowStep[], ctx: FlowCtx, queue: Map<string, StepRecord>): AsyncGenerator<StepTick>",
+        "Для каждого шага:",
+        "  — если enabled=false → yield { skipped: true }, continue",
+        "  — проверить requires: если ctx[key] пуст → throw с именем шага",
+        "  — записать в queue: { stepId, startedAt: Date.now(), timeoutMs, status: 'running' }",
+        "  — вызвать STEPS[step.id](ctx) обёрнутый в Promise.race с таймаутом",
+        "  — при успехе: queue.update(status: 'done'), yield StepTick",
+        "  — при ошибке: queue.update(status: 'failed')",
+        "    onError=throw → пробросить ошибку наверх",
+        "    onError=warn  → console.warn, yield { skipped: true }, continue",
+        "    onError=skip  → yield { skipped: true }, continue",
+        "  — для type='user': не вызывать STEPS, ждать ctx.onIntakeReady промис"
+      ],
+      "dependsOn": ["3"]
+    },
+    {
+      "id": "5",
+      "title": "Watchdog хук",
+      "file": "src/app/projects/flow/useFlowWatchdog.ts",
+      "what": [
+        "useFlowWatchdog(queue: Map<string, StepRecord>): void",
+        "setInterval каждые 2000ms",
+        "Для каждой записи в queue со status='running':",
+        "  если Date.now() - startedAt > timeoutMs → console.error('[flow] STUCK: {stepId}')",
+        "Очищает интервал при unmount"
+      ],
+      "dependsOn": ["1"]
+    },
+    {
+      "id": "6",
+      "title": "Рефактор handleLaunch",
+      "file": "src/app/projects/ProjectsPageClient.tsx",
+      "what": [
+        "Импортировать runFlow, FlowCtx, StepRecord",
+        "Импортировать creation-flow.json",
+        "Собрать начальный ctx из локального state модалки",
+        "Создать queue = new Map<string, StepRecord>()",
+        "Запустить useFlowWatchdog(queue)",
+        "for await (tick of runFlow(flow.steps, ctx, queue)):",
+        "  setLaunchStep(tick.stepId) — обновить UI-лейбл",
+        "  ctx = tick.ctx",
+        "  если tick.stepId === 'intake-ui' → показать вопросы, дождаться ответов",
+        "Убрать всю inline-логику шагов из handleLaunch"
+      ],
+      "dependsOn": ["4", "5"]
+    },
+    {
+      "id": "7",
+      "title": "Валидация реестра при старте",
+      "file": "src/app/projects/flow/registry.ts",
+      "what": [
+        "При импорте проверить: все step.id из creation-flow.json есть в STEPS",
+        "Если нет — throw в dev, console.error в prod",
+        "Это страхует от рассинхрона JSON и кода"
+      ],
+      "dependsOn": ["3"]
+    }
+  ],
+
+  "order": ["1", "2", "3", "4", "5", "6", "7"],
+
+  "ctx-fields": {
+    "in": {
+      "ideaPrompt":      "string — идея пользователя",
+      "selectedTeamId":  "string | null — выбранная команда",
+      "domainTags":      "string[] — теги",
+      "autoPersonaIds":  "string[] — ID персон из выбранной команды",
+      "autostart":       "boolean — запускать симуляцию автоматически",
+      "pendingFiles":    "File[] — файлы для загрузки",
+      "draftProjectId":  "string | null — если черновик уже есть",
+      "onIntakeReady":   "() => Promise<SyntheticIntakeAnswer[]> — колбэк для intake-ui",
+      "router":          "NextRouter — для redirect шага"
+    },
+    "out": {
+      "projectId":       "string — создан на шаге draft",
+      "projectName":     "string — создан на шаге name",
+      "sessionId":       "string — создан на шаге session",
+      "synthetics":      "SyntheticNode[] — после session или director-confirm",
+      "intakeQuestions": "SyntheticIntakeQuestion[] — после intake-stream",
+      "intakeAnswers":   "SyntheticIntakeAnswer[] — после intake-ui",
+      "runId":           "string — после run-simulation"
+    }
+  }
+}

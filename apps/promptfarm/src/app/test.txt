@@ -1,0 +1,51 @@
+1. Director prompt использует gamedev-пример для всех доменов
+  В directorBuilder.ts пример JSON захардкожен с personaId: "game_designer". Когда пользователь описывает SaaS, Director видит этот пример и паттерн-матчит в сторону gamedev-персон.
+
+  2. Role-specific hints покрывают только 7 ролей из 20+
+  Есть подсказки для legal, finance, game designer, UX, programmer, QA, PM. Но нет ни одной подсказки для founder, CTO, CFO, CMO, growth — то есть всех бизнес-ролей. Они выдают generic output без domain-специфичных ограничений.
+
+  3. buildDomainExamples не матчит домен "business-startup"
+  Director идентифицирует identifiedDomain: "business_startup", но функция не имеет этого кейса — падает в дефолтный "cloud-hosted SaaS" пример, который тоже не про стартап.
+
+  ---
+  🟠 Серьёзно
+
+  4. Resolved decisions скрыты от Director
+  Пользователь выбрал "использовать React Native" в прошлой итерации. Но Director об этом не знает и снова предлагает "Native iOS Developer" в команду.
+
+  5. Upstream handoff теряет данные
+  Когда агент не продюсит directedHandoffs, фолбек передаёт downstream только summary (1 строка). Все findings, risks, constraints теряются. Downstream агент думает на неполном контексте.
+
+  6. Противоречие в retry промпте
+  Строка ~2747: "Revise your previous output, not regenerate" vs строка ~2820: "Previous draft (do NOT copy this)". LLM должен выполнить взаимоисключающие инструкции — в результате либо копирует, либо выбрасывает всё и пишет заново.
+
+  ---
+  🟡 Умеренно
+
+  7. Лимит 2500 символов не валидируется
+  Промпт говорит "keep under 2500 chars" но ни валидатор, ни парсер не проверяют это. Нормальный качественный ответ (5 рисков + 3 решения + кларификации) уже ~1800-2500 символов. LLM давит на себя и обрезает.
+
+  8. needs_clarification — нет recovery path
+  Агент ставит status: "needs_clarification". После того как пользователь ответил, агент на следующем запуске снова ставит тот же статус вместо "advancing". Нет инструкции что делать когда кларификация уже получена.
+
+  9. Self-repeat retry без конкретики
+  При retry с причиной self_repeat агент получает только "generate materially different content" — без указания в каком измерении: больше findings? Другие decisions? Иной угол рисков? Агент гадает.
+
+  10. Concern levels: lossy scale detection
+  Агент отвечает "feasibility": 5. Код определяет шкалу по max значению через эвристику. Если оба значения ≤10, считает шкалу 0-10 и умножает на 10. Если агент имел в виду 0-100 шкалу с значением 5 — молча искажается до 50.
+
+  ---
+  🟢 Мелкое / cleanup
+
+  11. allPersonaSuggestions с confidence: 0 — поле существует, непонятно зачем, может быть перепутано с реальными рекомендациями
+
+  12. Intake questions не кросс-чекаются с resolved decisions — агент может переспросить уже решённый вопрос
+
+  13. Director не имеет guidance на exclusion — "выбери релевантных" без примера что исключить
+
+  14. Handoff facts не валидируются на specificity — агент может написать "budget constraints exist" и это пройдёт
+
+  ---
+  Что из этого делать в первую очередь?
+
+  По соотношению effort/impact: #2 (role hints для бизнес-ролей), #1 (Director пример), #3 (domain examples function) — они в одном месте кода и дадут самый заметный эффект на качество ответов.

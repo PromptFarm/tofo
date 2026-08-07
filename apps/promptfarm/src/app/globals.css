@@ -1,0 +1,425 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-jetbrains-mono), var(--font-inter), monospace;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+  --font-heading: var(--font-manrope), sans-serif;
+
+  /* Dark surfaces */
+  --color-surface: var(--surface);
+  --color-surface-lowest: var(--surface-lowest);
+  --color-surface-low: var(--surface-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-high: var(--surface-high);
+  --color-surface-variant: var(--surface-variant);
+
+  /* Primary */
+  --color-primary: var(--primary);
+  --color-primary-dim: var(--primary-dim);
+  --color-primary-container: var(--primary-container);
+  --color-primary-fixed-dim: var(--primary-fixed-dim);
+
+  /* On-surface */
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-on-primary: var(--on-primary);
+
+  /* Outline */
+  --color-outline-variant: var(--outline-variant);
+  --color-surface-tint: var(--surface-tint);
+
+  /* shadcn overrides */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Font families */
+  --font-display: var(--font-manrope), sans-serif;
+  --font-body: var(--font-jetbrains-mono), var(--font-inter), monospace;
+}
+
+:root {
+  /* ── TOFO Design System — Dark Theme (default) ───────────────────────── */
+
+  /* Backgrounds */
+  --background:        #07080f;
+  --surface:           #0d0f1a;
+  --surface-2:         #141727;
+  --surface-3:         #1b1f32;
+
+  /* Legacy surface-scale aliases (ThinkingGraph canvas) */
+  --surface-lowest:    #07080f;
+  --surface-low:       #0d0f1a;
+  --surface-container: rgba(255, 255, 255, 0.06);
+  --surface-high:      #1b1f32;
+  --surface-variant:   #1b1f32;
+
+  /* Borders */
+  --border:            #1e2236;   /* default dividers, card borders */
+  --border-2:          #2a2f4a;   /* elevated borders, hover borders */
+  --border-solid:      #1e2236;   /* alias used by project-screen */
+  --outline-variant:   rgba(255, 255, 255, 0.07); /* subtle glass — canvas only */
+
+  /* Text */
+  --on-surface:         #e8eaf2;
+  --on-surface-variant: #9198b8;
+  --t3:                 #4d5470;
+  --foreground:         #e8eaf2;
+
+  /* Accent / Brand — oklch indigo */
+  --primary:           oklch(0.62 0.22 265);
+  --primary-dim:       oklch(0.56 0.22 265);
+  --primary-container: oklch(0.62 0.22 265 / 0.12);
+  --primary-fixed-dim: oklch(0.62 0.22 265 / 0.22);
+  --primary-border:    oklch(0.62 0.22 265 / 0.35);
+  --accent-hi:         oklch(0.66 0.22 265);
+  --accent-dim:        oklch(0.62 0.22 265 / 0.12);
+  --surface-tint:      oklch(0.62 0.22 265);
+  --on-primary:        #07080f;
+
+  /* Semantic (same in both themes — TOFO spec) */
+  --accent-go:   oklch(0.65 0.18 160);
+  --accent-warn: oklch(0.72 0.18 75);
+
+  /* Panels */
+  --panel-bg:       rgba(13, 15, 26, 0.90);
+  --panel-bg-solid: rgba(13, 15, 26, 0.97);
+
+  /* Graph canvas */
+  --graph-bg:
+    radial-gradient(ellipse 60% 40% at 30% 60%, oklch(0.62 0.22 265 / 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 70% 30%, oklch(0.65 0.18 160 / 0.03) 0%, transparent 60%),
+    radial-gradient(circle at 50% 50%,           oklch(0.62 0.18 240 / 0.02) 0%, transparent 70%),
+    #07080f;
+  --grid-dot: rgba(255, 255, 255, 0.05);
+
+  /* Graph edges */
+  --edge-default:       rgba(255, 255, 255, 0.50);
+  --edge-structural:    rgba(100, 116, 139, 0.65);
+  --edge-tension:       oklch(0.58 0.22 25 / 0.85);
+  --edge-oversight:     oklch(0.65 0.18 160 / 0.80);
+  --edge-amplification: oklch(0.62 0.18 240 / 0.75);
+
+  /* Status */
+  --status-done:     oklch(0.65 0.18 160);
+  --status-thinking: oklch(0.62 0.22 265);
+  --status-conflict: #fbbf24;
+  --status-blocked:  oklch(0.58 0.22 25);
+  --status-waiting:  #60a5fa;
+  --status-dirty:    #fb923c;
+
+  /* Danger */
+  --danger-bg:     oklch(0.58 0.22 25 / 0.12);
+  --danger-border: oklch(0.58 0.22 25 / 0.32);
+  --danger-text:   oklch(0.68 0.22 25);
+
+  /* Semantic tokens */
+  --color-error-text:        oklch(0.68 0.22 25);
+  --color-error-bg:          oklch(0.58 0.22 25 / 0.12);
+  --color-error-bg-subtle:   oklch(0.58 0.22 25 / 0.07);
+  --color-error-border:      oklch(0.58 0.22 25 / 0.30);
+
+  --color-warning-text:      oklch(0.72 0.18 75);
+  --color-warning-bg:        oklch(0.72 0.18 75 / 0.12);
+  --color-warning-bg-subtle: oklch(0.72 0.18 75 / 0.06);
+  --color-warning-border:    oklch(0.72 0.18 75 / 0.30);
+
+  --color-success-text:      oklch(0.65 0.18 160);
+  --color-success-bg:        oklch(0.65 0.18 160 / 0.12);
+  --color-success-bg-subtle: oklch(0.65 0.18 160 / 0.08);
+  --color-success-border:    oklch(0.65 0.18 160 / 0.35);
+
+  --color-info-text:         #60a5fa;
+  --color-info-bg:           rgba(96, 165, 250, 0.12);
+  --color-info-border:       rgba(96, 165, 250, 0.35);
+
+  /* Typography scale */
+  --text-label:   9px;
+  --text-caption: 11px;
+  --text-body:    13px;
+  --text-heading: 16px;
+
+  /* shadcn compatibility */
+  --card:               #0d0f1a;
+  --card-foreground:    #e8eaf2;
+  --popover:            #0d0f1a;
+  --popover-foreground: #e8eaf2;
+  --primary-foreground: #07080f;
+  --secondary:          #1b1f32;
+  --secondary-foreground: #e8eaf2;
+  --muted:              #141727;
+  --muted-foreground:   #9198b8;
+  --accent:             #141727;
+  --accent-foreground:  #e8eaf2;
+  --destructive:        oklch(0.58 0.22 25);
+  --input:              #141727;
+  --ring:               oklch(0.62 0.22 265);
+  --radius: 0.5rem;
+}
+
+/* ── TOFO Design System — Light Theme ── */
+[data-theme="light"] {
+  /* Backgrounds */
+  --background:        #f0f2fa;
+  --surface:           #ffffff;
+  --surface-2:         #eef0f8;
+  --surface-3:         #e3e6f4;
+
+  --surface-lowest:    #f0f2fa;
+  --surface-low:       #ffffff;
+  --surface-container: rgba(0, 0, 0, 0.04);
+  --surface-high:      #e3e6f4;
+  --surface-variant:   #e3e6f4;
+
+  /* Borders */
+  --border:            #d6daea;
+  --border-2:          #c4c9e0;
+  --border-solid:      #d6daea;
+  --outline-variant:   rgba(0, 0, 0, 0.06);
+
+  /* Text */
+  --on-surface:         #090b18;
+  --on-surface-variant: #474e72;
+  --t3:                 #8e96b8;
+  --foreground:         #090b18;
+
+  /* Accent / Brand — same oklch values as dark (TOFO spec) */
+  --primary:           oklch(0.62 0.22 265);
+  --primary-dim:       oklch(0.56 0.22 265);
+  --primary-container: oklch(0.62 0.22 265 / 0.12);
+  --primary-fixed-dim: oklch(0.62 0.22 265 / 0.22);
+  --primary-border:    oklch(0.62 0.22 265 / 0.35);
+  --accent-hi:         oklch(0.66 0.22 265);
+  --accent-dim:        oklch(0.62 0.22 265 / 0.12);
+  --surface-tint:      oklch(0.62 0.22 265);
+  --on-primary:        #ffffff;
+
+  /* Semantic (same in both themes — TOFO spec) */
+  --accent-go:   oklch(0.65 0.18 160);
+  --accent-warn: oklch(0.72 0.18 75);
+
+  /* Panels */
+  --panel-bg:       rgba(255, 255, 255, 0.92);
+  --panel-bg-solid: rgba(255, 255, 255, 0.98);
+
+  /* Graph canvas */
+  --graph-bg:  #f0f2fa;
+  --grid-dot:  rgba(0, 0, 0, 0.06);
+
+  --edge-default:       #5a6a7a;
+  --edge-structural:    rgba(71, 85, 105, 0.70);
+  --edge-tension:       oklch(0.52 0.22 25);
+  --edge-oversight:     oklch(0.52 0.18 160);
+  --edge-amplification: oklch(0.52 0.18 240);
+
+  /* Status */
+  --status-done:     oklch(0.52 0.18 160);
+  --status-thinking: oklch(0.55 0.22 265);
+  --status-conflict: #c07a00;
+  --status-blocked:  oklch(0.52 0.22 25);
+  --status-waiting:  oklch(0.52 0.18 240);
+  --status-dirty:    #c26000;
+
+  /* Danger */
+  --danger-bg:     oklch(0.58 0.22 25 / 0.08);
+  --danger-border: oklch(0.58 0.22 25 / 0.28);
+  --danger-text:   oklch(0.52 0.22 25);
+
+  /* Semantic tokens */
+  --color-error-text:        oklch(0.52 0.22 25);
+  --color-error-bg:          oklch(0.58 0.22 25 / 0.10);
+  --color-error-bg-subtle:   oklch(0.58 0.22 25 / 0.05);
+  --color-error-border:      oklch(0.58 0.22 25 / 0.28);
+
+  --color-warning-text:      oklch(0.60 0.18 75);
+  --color-warning-bg:        oklch(0.72 0.18 75 / 0.12);
+  --color-warning-bg-subtle: oklch(0.72 0.18 75 / 0.05);
+  --color-warning-border:    oklch(0.72 0.18 75 / 0.28);
+
+  --color-success-text:      oklch(0.52 0.18 160);
+  --color-success-bg:        oklch(0.65 0.18 160 / 0.12);
+  --color-success-bg-subtle: oklch(0.65 0.18 160 / 0.06);
+  --color-success-border:    oklch(0.65 0.18 160 / 0.28);
+
+  --color-info-text:         oklch(0.52 0.18 240);
+  --color-info-bg:           oklch(0.62 0.18 240 / 0.12);
+  --color-info-border:       oklch(0.62 0.18 240 / 0.28);
+
+  /* shadcn compatibility */
+  --card:               #ffffff;
+  --card-foreground:    #090b18;
+  --popover:            #ffffff;
+  --popover-foreground: #090b18;
+  --primary-foreground: #ffffff;
+  --secondary:          #e3e6f4;
+  --secondary-foreground: #090b18;
+  --muted:              #eef0f8;
+  --muted-foreground:   #474e72;
+  --accent:             #eef0f8;
+  --accent-foreground:  #090b18;
+  --destructive:        oklch(0.58 0.22 25);
+  --input:              #eef0f8;
+  --ring:               oklch(0.62 0.22 265);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply text-on-surface font-body;
+    background: var(--graph-bg);
+  }
+  html {
+    @apply font-body;
+    color-scheme: dark;
+  }
+  [data-theme="light"] {
+    color-scheme: light;
+  }
+}
+
+/* Nodes render above edges so cards are never buried under connection lines.
+   React Flow's elevateEdgesOnSelect handles selected-edge elevation on top of that. */
+.react-flow__edges {
+  z-index: 1 !important;
+}
+.react-flow__nodes {
+  z-index: 2 !important;
+}
+
+/* Node ring pulse animations */
+@keyframes think-ring {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.62 0.22 265 / 0); }
+  50% { box-shadow: 0 0 0 8px oklch(0.62 0.22 265 / 0.18); }
+}
+@keyframes conf-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+  50% { box-shadow: 0 0 0 8px rgba(251, 191, 36, 0.18); }
+}
+@keyframes block-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0); }
+  50% { box-shadow: 0 0 0 8px rgba(248, 113, 113, 0.18); }
+}
+
+/* Dirty node: slow elegant glow breath on the card border — applied to the inner card div */
+@keyframes dirty-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(251, 146, 60, 0.15), 0 0 8px 0 rgba(251, 146, 60, 0);
+    border-color: rgba(251, 146, 60, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(251, 146, 60, 0.5), 0 0 18px 4px rgba(251, 146, 60, 0.12);
+    border-color: rgba(251, 146, 60, 0.65);
+  }
+}
+.node-card-dirty {
+  animation: dirty-glow 3s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.node-ring-think { animation: think-ring 1.8s ease-in-out infinite; }
+.node-ring-conf   { animation: conf-ring 2s ease-in-out infinite; }
+.node-ring-block  { animation: block-ring 1.5s ease-in-out infinite; }
+
+
+/* Ghost / scanning node — shown while Director is analyzing the prompt */
+@keyframes node-ghost-scan {
+  0%   { filter: opacity(0.18) blur(0.8px); }
+  40%  { filter: opacity(0.48) blur(0px);   }
+  70%  { filter: opacity(0.32) blur(0.5px); }
+  100% { filter: opacity(0.18) blur(0.8px); }
+}
+.node-ghost {
+  animation: node-ghost-scan 2.2s ease-in-out infinite;
+}
+
+/* Node entrance animation — staggered scale+fade using filter so opacity dimming is unaffected */
+@keyframes node-enter {
+  0%   { filter: opacity(0); transform: scale(0.86) translateY(6px); }
+  55%  { filter: opacity(1); transform: scale(1.03) translateY(0); }
+  100% { filter: opacity(1); transform: scale(1)    translateY(0); }
+}
+.node-enter {
+  animation: node-enter 0.32s cubic-bezier(0.34, 1.26, 0.64, 1) both;
+}
+
+/* Graph-ready banner fade-in then fade-out */
+@keyframes pf-banner-show {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  70%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+}
+.pf-graph-ready-banner {
+  animation: pf-banner-show 2.6s ease forwards;
+  pointer-events: none;
+}
+
+/* Thinking dots */
+@keyframes thinking-dot {
+  0%, 100% { opacity: 0.25; transform: scale(0.75); }
+  50% { opacity: 1; transform: scale(1); }
+}
+.thinking-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: oklch(0.62 0.22 265);
+  animation: thinking-dot 0.8s ease-in-out infinite;
+}
+.thinking-dot:nth-child(2) { animation-delay: 0.15s; }
+.thinking-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/* ── Custom scrollbars ── */
+:root {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  --pf-scrollbar-thumb: rgba(255, 255, 255, 0.1);
+  --pf-scrollbar-thumb-hover: rgba(255, 255, 255, 0.18);
+}
+[data-theme="light"] {
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+  --pf-scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --pf-scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--pf-scrollbar-thumb);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pf-scrollbar-thumb-hover);
+}

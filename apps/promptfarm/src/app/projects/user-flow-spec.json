@@ -1,0 +1,293 @@
+{
+  "version": "1.0",
+  "description": "User-facing flow spec — what triggers each step, what the user sees, how to verify. Use this as a checklist before shipping.",
+
+  "flows": [
+
+    {
+      "id": "create-project",
+      "label": "Создание проекта",
+      "entry": "Кнопка «New Project» на /tofo/projects",
+      "steps": [
+        {
+          "id": "modal-open",
+          "label": "Модалка открывается",
+          "trigger": "Клик «New Project»",
+          "userSees": "Модалка с полями: Name (опционально), Idea, Tags, Team, Autostart-чекбокс",
+          "background": "fetch GET /api/teams — загружает пресеты команд",
+          "verify": "Пресеты команд появляются в дропдауне Team"
+        },
+        {
+          "id": "form-fill",
+          "label": "Заполнение формы",
+          "trigger": "Пользователь печатает идею",
+          "userSees": "Текстовое поле, счётчик символов, теги, выбор команды",
+          "background": "Ничего — данные только в локальном состоянии",
+          "verify": "Всё введённое сохраняется в форме, кнопка Launch активна при idea > 10 символов"
+        },
+        {
+          "id": "launch-click",
+          "label": "Клик «Launch Simulation»",
+          "trigger": "Кнопка Launch Simulation",
+          "userSees": "Кнопка становится «Preparing…», в футере появляется лейбл текущего шага",
+          "background": "Старт handleLaunch() — начало цепочки шагов",
+          "verify": "Кнопка заблокирована, нельзя кликнуть повторно"
+        },
+        {
+          "id": "draft",
+          "label": "Создание черновика",
+          "trigger": "Автоматически после launch-click",
+          "userSees": "Лейбл в футере: «Creating project…»",
+          "background": "POST /api/projects/draft → createDraftProject() — запись в БД со статусом draft",
+          "output": "ctx.projectId",
+          "verify": "projectId появился в ctx — следующие шаги его используют"
+        },
+        {
+          "id": "name",
+          "label": "AI-генерация имени",
+          "trigger": "Автоматически если поле Name оставлено пустым",
+          "userSees": "Лейбл: «Naming project…» (~3-5 секунд)",
+          "background": "POST /api/projects/name → model.generate('придумай 2-5 слов') → PATCH /api/projects/{id}/name",
+          "tokens": "~50",
+          "output": "ctx.projectName",
+          "verify": "Имя появится в заголовке страницы проекта после редиректа",
+          "skippable": true,
+          "skipCondition": "Пользователь заполнил поле Name вручную"
+        },
+        {
+          "id": "session",
+          "label": "Сборка граф-сессии",
+          "trigger": "Автоматически",
+          "userSees": "Лейбл: «Creating thinking session…» (мгновенно)",
+          "background": "POST /api/thinking-graph/session → loadAllPersonas() → buildLinearPersonaGraph() → createSession() в памяти → PUT /api/projects/{id}/session (сохранение в БД)",
+          "tokens": 0,
+          "output": "ctx.sessionId, ctx.synthetics[]",
+          "verify": "sessionId получен, синтетики с ролями founder/cto/cfo/cmo собраны без LLM-вызова"
+        },
+        {
+          "id": "activate",
+          "label": "Активация проекта",
+          "trigger": "Автоматически",
+          "userSees": "Лейбл: «Activating…» (мгновенно)",
+          "background": "PATCH /api/projects/{id}/status → { status: 'active' }",
+          "tokens": 0,
+          "verify": "Проект виден в списке /tofo/projects со статусом Analyzed (не Draft)"
+        },
+        {
+          "id": "intake-stream",
+          "enabled": false,
+          "label": "Генерация уточняющих вопросов — ВИДИМЫЙ LLM",
+          "trigger": "Автоматически",
+          "userSees": [
+            "Модалка переходит в фазу 'thinking'",
+            "Спиннер + текст «Reading the idea…»",
+            "Внизу кнопка «Skip questions →»",
+            "Раскрывающийся лог «Model log» показывает сырой стрим токенов LLM"
+          ],
+          "background": "POST /api/thinking-graph/intake [ndjson stream] → buildIntakeQuestions() → один LLM-вызов",
+          "tokens": "~500–1200",
+          "duration": "20–60 секунд",
+          "output": "ctx.intakeQuestions[]",
+          "verify": "Появляется 3-5 вопросов специфичных для идеи, не generic",
+          "skippable": true,
+          "skipCondition": "Клик «Skip questions →» — переходит сразу к intake-save"
+        },
+        {
+          "id": "intake-ui",
+          "enabled": false,
+          "label": "Ответы на вопросы — пользовательское взаимодействие",
+          "trigger": "Появление вопросов после intake-stream",
+          "userSees": [
+            "Прогресс-бар сверху (Вопрос 1 из N)",
+            "Текст вопроса + пояснение whyItMatters",
+            "Поле для ответа с подсказкой suggestedAnswer",
+            "Кнопки «Skip» и «Next →» / «Done →»",
+            "⌘Enter для продолжения"
+          ],
+          "background": "Ничего — данные только в локальном состоянии",
+          "output": "ctx.intakeAnswers[]",
+          "verify": "Прогресс-бар двигается, ответы накапливаются, последний вопрос даёт «Done →»"
+        },
+        {
+          "id": "intake-save",
+          "label": "Сохранение ответов",
+          "trigger": "Автоматически после Done на последнем вопросе",
+          "userSees": "Модалка переходит в фазу 'assembling' — спиннер «Launching simulation…»",
+          "background": "PATCH /api/thinking-graph/intake → saveIntakeAnswers() → PUT /api/projects/{id}/session (пересохранение с ответами)",
+          "tokens": 0,
+          "verify": "Ответы embedded в sessionPayload — при перезагрузке страницы проекта они будут в initialSessionPayload"
+        },
+        {
+          "id": "redirect",
+          "label": "Переход на страницу проекта",
+          "trigger": "Автоматически после intake-save",
+          "userSees": "Модалка закрывается, открывается страница проекта",
+          "background": "router.push('/tofo/projects/{id}?autostart=true&personas=founder,cto,cfo,cmo')",
+          "verify": "URL содержит ?autostart=true&personas=... (фикс 0.8.6)"
+        }
+      ]
+    },
+
+    {
+      "id": "project-page-load",
+      "label": "Загрузка страницы проекта",
+      "entry": "/tofo/projects/{id}",
+      "steps": [
+        {
+          "id": "ssr",
+          "label": "Серверный рендер",
+          "userSees": "Страница появляется с именем проекта, тегами, табами Report/Idea/Synthetics",
+          "background": "getProjectById() + getLatestProjectSession() — оба вызова из БД на сервере",
+          "verify": "Имя проекта в заголовке, теги в топбаре, табы кликабельны"
+        },
+        {
+          "id": "hydrate",
+          "label": "Гидрация ThinkingGraph (скрытый компонент)",
+          "userSees": "Пользователь видит Report-таб с «No report yet» пока идёт гидрация",
+          "background": "ThinkingGraphWorkspace монтируется в hidden div. useLayoutEffect сбрасывает UI-стор, восстанавливает runHistory. useEffect устанавливает hasIdea=true из sessionPayload.ideaPrompt.",
+          "verify": "hasIdea=true в Zustand store после первого рендер-цикла"
+        }
+      ]
+    },
+
+    {
+      "id": "autostart",
+      "label": "Автозапуск симуляции (autostart=true)",
+      "entry": "URL содержит ?autostart=true&personas=...",
+      "difference": "Пользователь НЕ нажимает Run Simulation — всё запускается само после загрузки страницы",
+      "steps": [
+        {
+          "id": "director-confirm",
+          "label": "Автоподтверждение команды",
+          "trigger": "useEffect в ThinkingGraph — срабатывает после hasIdea=true",
+          "userSees": "Ничего видимого — компонент скрыт",
+          "background": "PATCH /api/thinking-graph/director → confirmDirectorPhase({ confirmedPersonaIds: autoPersonaIds }) → пересборка графа из выбранных персон без LLM",
+          "tokens": 0,
+          "bug": "ОТКРЫТЫЙ БАГ: если сессия не в памяти сервера — падает без DB-fallback → autostart ломается тихо → пользователь видит 'No report yet' и нажимает Run вручную",
+          "verify": "directorPhase переходит в 'confirmed'"
+        },
+        {
+          "id": "auto-run-trigger",
+          "label": "Автозапуск симуляции",
+          "trigger": "useEffect в ThinkingGraph — срабатывает после directorPhase='confirmed'",
+          "userSees": "Кнопка «Run Simulation» → «Stop», синтетики начинают светиться",
+          "background": "actions.startThinkingRun() — запускает POST /api/thinking-graph/run/stream",
+          "verify": "Кнопка Stop видна, синтетики активны, без нажатия Run"
+        }
+      ]
+    },
+
+    {
+      "id": "manual-run",
+      "label": "Ручной запуск симуляции (autostart=false)",
+      "entry": "Страница проекта, autostart не передан или =false",
+      "difference": "Пользователь сам нажимает Run Simulation когда готов",
+      "steps": [
+        {
+          "id": "run-button-click",
+          "label": "Клик «Run Simulation»",
+          "trigger": "Пользователь",
+          "userSees": "Кнопка становится «Stop», синтетики начинают светиться",
+          "background": "start() из RunContext → actions.startThinkingRun()",
+          "verify": "canRun=true перед кликом (hasIdea + синтетики > 0 + не запущено)"
+        }
+      ]
+    },
+
+    {
+      "id": "simulation-run",
+      "label": "Выполнение симуляции",
+      "entry": "Triggered by autostart или manual-run",
+      "steps": [
+        {
+          "id": "run-stream",
+          "label": "Каждый синтетик думает об идее",
+          "userSees": [
+            "Синтетики на канвасе подсвечиваются по очереди",
+            "Таймер в топбаре считает секунды",
+            "Кнопка «Stop» активна"
+          ],
+          "background": "POST /api/thinking-graph/run/stream → каждый синтетик: system=persona_role + user=idea+intake_answers+upstream_context → стримит результат",
+          "tokens": "~2000–8000 (зависит от N синтетиков × сложность идеи)",
+          "duration": "1–5 минут",
+          "verify": "Синтетики загораются последовательно, прогресс-счётчик двигается"
+        },
+        {
+          "id": "run-persist",
+          "label": "Автосохранение результатов",
+          "trigger": "Автоматически по debounce после каждого изменения sessionPayload",
+          "userSees": "«Saving» → «Saved» в топбаре ThinkingGraph",
+          "background": "PUT /api/projects/{id}/session → saveProjectThinkingGraphSession()",
+          "verify": "После перезагрузки страницы результаты не теряются"
+        },
+        {
+          "id": "run-done",
+          "label": "Симуляция завершена",
+          "userSees": [
+            "Кнопка «Stop» → «Run Simulation»",
+            "Report-таб показывает Go/No-Go вердикт",
+            "Breakdown по каждому синтетику",
+            "Риски и блокеры"
+          ],
+          "background": "runStatus='done', outputsBySyntheticId заполнен",
+          "verify": "Report-таб содержит контент, каждый синтетик имеет вывод"
+        }
+      ]
+    },
+
+    {
+      "id": "post-run-interactions",
+      "label": "Взаимодействия после запуска",
+      "flows": [
+        {
+          "id": "chat-with-synthetic",
+          "label": "Чат с синтетиком",
+          "trigger": "Клик на синтетика на канвасе → открывается сайдбар",
+          "userSees": [
+            "Сайдбар с историей сообщений синтетика",
+            "Поле ввода для вопроса",
+            "Ответ стримится как LLM-вывод"
+          ],
+          "background": "POST /api/thinking-graph/chat/stream → синтетик отвечает в роли своей персоны с контекстом всей сессии",
+          "tokens": "~200–800 за сообщение",
+          "verify": "Ответ релевантен роли синтетика и контексту идеи"
+        },
+        {
+          "id": "change-idea",
+          "label": "Изменение идеи",
+          "trigger": "Переход на таб Idea → редактирование текста",
+          "userSees": [
+            "Поле редактирования идеи",
+            "Автосохранение через 1.2 секунды после остановки печати",
+            "«Saved» индикатор"
+          ],
+          "background": "PATCH /api/projects/{id} → { idea: newText } — debounce 1200ms в ProjectScreen",
+          "verify": "После перезагрузки новый текст идеи сохранён",
+          "note": "Изменение идеи после запуска помечает синтетиков как 'needs-rerun'"
+        },
+        {
+          "id": "rerun",
+          "label": "Повторный запуск",
+          "trigger": "Клик «Run Simulation» после изменения идеи или команды",
+          "userSees": "Новая итерация появляется в истории, предыдущие сохранены",
+          "background": "runHistory[] пополняется, новый runId добавляется в simulationHistory",
+          "verify": "Дропдаун итераций показывает обе версии, можно переключаться"
+        }
+      ]
+    }
+  ],
+
+  "autostart-vs-manual": {
+    "autostart": {
+      "when": "URL содержит ?autostart=true&personas=...",
+      "userExperience": "Попадаешь на страницу — через ~2 секунды симуляция уже идёт сама",
+      "requires": "confirmDirectorPhase должен найти сессию в памяти сервера",
+      "currentBug": "Если сессия не в памяти — тихо падает, пользователь видит Run кнопку"
+    },
+    "manual": {
+      "when": "URL без autostart параметра, или autostart=false",
+      "userExperience": "Попадаешь на страницу с 'No report yet', сам нажимаешь Run Simulation когда готов",
+      "requires": "canRun=true: hasIdea + синтетики > 0 + не запущено + не исторический вид"
+    }
+  }
+}

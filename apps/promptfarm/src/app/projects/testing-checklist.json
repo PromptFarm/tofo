@@ -1,0 +1,208 @@
+{
+  "version": "1.0",
+  "description": "Что видеть на каждом шаге при тестировании. Проверять сверху вниз.",
+
+  "setup": {
+    "before": [
+      "Deno API запущен: cd apps/api && deno task dev",
+      "Next.js запущен: cd apps/promptfarm && npm run dev",
+      "Открыть DevTools → Console (фильтр: [flow])",
+      "Открыть DevTools → Network (фильтр: XHR/Fetch)"
+    ]
+  },
+
+  "scenarios": [
+
+    {
+      "id": "create-basic",
+      "title": "Базовое создание проекта",
+      "steps": [
+        {
+          "action": "Перейти на /tofo/projects",
+          "see": "Список проектов, кнопка «New Project» в правом верхнем углу"
+        },
+        {
+          "action": "Кликнуть «New Project»",
+          "see": "Модалка открылась. Поля: Name (пустое), Idea, Tags, Team=Auto, Autostart-чекбокс",
+          "network": "GET /api/teams — загрузка пресетов команд"
+        },
+        {
+          "action": "Ввести идею (минимум 11 символов)",
+          "see": "Кнопка «Launch Simulation →» становится активной (не серая)"
+        },
+        {
+          "action": "Кликнуть «Launch Simulation →»",
+          "see": [
+            "Кнопка заблокирована, нельзя кликнуть повторно",
+            "В футере появляется шаг из JSON — «Creating project»",
+            "Через ~1с меняется на «Naming project»",
+            "Через ~3-5с меняется на «Building team»",
+            "Через ~1с меняется на «Activating»",
+            "Модалка переходит в фазу assembling — спиннер «Launching simulation...»",
+            "Через ~0.8с редирект на /tofo/projects/{id}"
+          ],
+          "console": [
+            "[flow] draft — done (123ms)",
+            "[flow] name — done (3241ms)",
+            "[flow] session — done (891ms)",
+            "[flow] activate — done (201ms)",
+            "[flow] redirect — done (12ms)"
+          ],
+          "network": [
+            "POST /api/projects/draft → 200",
+            "POST /api/projects/name → 200",
+            "PATCH /api/projects/{id}/name → 200",
+            "POST /api/thinking-graph/session → 200",
+            "PUT /api/projects/{id}/session → 200",
+            "PATCH /api/projects/{id}/status → 200"
+          ]
+        },
+        {
+          "action": "Попасть на страницу проекта",
+          "see": [
+            "URL: /tofo/projects/{id}?autostart=true&personas=... (если команда выбрана)",
+            "Имя проекта в топбаре (AI-сгенерированное)",
+            "Табы: Report / Idea / Synthetics",
+            "Report-таб открыт по умолчанию"
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "create-with-name",
+      "title": "Создание с ручным именем",
+      "steps": [
+        {
+          "action": "Открыть модалку, заполнить поле Name вручную",
+          "see": "Поле Name заполнено"
+        },
+        {
+          "action": "Кликнуть Launch",
+          "see": [
+            "Шаг «Naming project» НЕ вызывает AI — сохраняет введённое имя",
+            "Шаг проходит быстрее (~300ms вместо ~3-5s)"
+          ],
+          "console": "[flow] name — done (287ms)  ← заметно быстрее чем AI"
+        }
+      ]
+    },
+
+    {
+      "id": "create-with-team",
+      "title": "Создание с выбором команды",
+      "steps": [
+        {
+          "action": "В дропдауне Team выбрать пресет (не Auto)",
+          "see": "Список участников команды показан справа"
+        },
+        {
+          "action": "Кликнуть Launch",
+          "see": "URL после редиректа содержит ?personas=founder,cto,... (ID участников команды)"
+        }
+      ]
+    },
+
+    {
+      "id": "autostart-on",
+      "title": "Автостарт симуляции",
+      "steps": [
+        {
+          "action": "Поставить галочку «Start simulation automatically»",
+          "see": "Чекбокс активен"
+        },
+        {
+          "action": "Создать проект и дождаться редиректа",
+          "see": [
+            "Попадаешь на страницу проекта",
+            "Через 1-3 секунды кнопка «Run Simulation» меняется на «Stop»",
+            "Синтетики на Synthetics-табе начинают светиться",
+            "БЕЗ нажатия Run Simulation"
+          ],
+          "if_broken": "Видишь «No report yet» и Run кнопку — autostart не сработал. Проверить: URL содержит ?autostart=true, открыть Console и искать ошибки [flow] или toast-ошибку"
+        }
+      ]
+    },
+
+    {
+      "id": "autostart-off",
+      "title": "Без автостарта",
+      "steps": [
+        {
+          "action": "Снять галочку Autostart (по умолчанию снята)",
+          "see": "Чекбокс неактивен"
+        },
+        {
+          "action": "Создать проект",
+          "see": [
+            "URL после редиректа НЕ содержит ?autostart=true",
+            "Страница проекта: «No report yet»",
+            "Кнопка «Run Simulation» активна — нужно нажать вручную"
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "step-timeout",
+      "title": "Проверка watchdog (зависший шаг)",
+      "steps": [
+        {
+          "action": "В steps.ts временно добавить: await new Promise(r => setTimeout(r, 25000)) в начало nameStep",
+          "see": "Шаг «Naming project» висит дольше 15 секунд"
+        },
+        {
+          "action": "Ждать 2+ секунды после превышения timeoutMs",
+          "console": "[flow] STUCK: step \"name\" has been running for 15043ms (timeout: 15000ms)"
+        },
+        {
+          "action": "Убрать задержку после теста"
+        }
+      ]
+    },
+
+    {
+      "id": "step-disabled",
+      "title": "Отключённый шаг (intake)",
+      "steps": [
+        {
+          "action": "Убедиться что intake-stream имеет enabled: false в creation-flow.json",
+          "see": "Файл открыт — intake-stream.enabled = false"
+        },
+        {
+          "action": "Создать проект",
+          "see": [
+            "Шаг «Reading the idea» НЕ появляется в футере модалки",
+            "Вопросы не показываются",
+            "Редирект происходит сразу после Activating"
+          ],
+          "console": "НЕТ строки «[flow] intake-stream — done»"
+        },
+        {
+          "action": "Включить шаг: поменять enabled: false → true в creation-flow.json",
+          "see": "Шаг «Reading the idea» появится в футере и вопросы покажутся"
+        }
+      ]
+    },
+
+    {
+      "id": "requires-validation",
+      "title": "Проверка requires (неверный порядок шагов)",
+      "steps": [
+        {
+          "action": "В creation-flow.json переставить «session» перед «draft»",
+          "see": "Ошибка сразу при запуске runner"
+        },
+        {
+          "action": "Кликнуть Launch",
+          "see": "Toast или launchError: «[flow] Step \"session\" requires [projectId] but they are missing»",
+          "console": "Ошибка в Console с чётким текстом какой шаг и что не хватает"
+        },
+        {
+          "action": "Вернуть исходный порядок шагов"
+        }
+      ]
+    }
+
+  ]
+}

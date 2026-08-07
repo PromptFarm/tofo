@@ -1,0 +1,54 @@
+import assert from "node:assert/strict";
+import type { SyntheticGraphPayload } from "@/lib/thinking-graph/server/types";
+import type { SyntheticNode } from "@/lib/planning/types";
+import { applyLocalSessionPayloadChange } from "./applyLocalSessionPayloadChange";
+
+function synthetic(id: string): SyntheticNode {
+  return {
+    id,
+    code: id.slice(-2).toUpperCase(),
+    name: id,
+    role: `${id} role`,
+    status: "active",
+    layout: { x: 0, y: 0 },
+    config: {
+      enabled: true,
+      temperature: 0.3,
+      strictness: 70,
+      engagementPercent: 70,
+    },
+  };
+}
+
+function payload(syntheticIds: string[]): SyntheticGraphPayload {
+  return {
+    sessionId: "session-1",
+    ideaPrompt: "Idea",
+    synthetics: syntheticIds.map(synthetic),
+    edges: [],
+    transcript: [],
+    outputsBySyntheticId: Object.fromEntries(syntheticIds.map((id) => [id, null])),
+    conversationsBySyntheticId: Object.fromEntries(syntheticIds.map((id) => [id, []])),
+    preparedInputs: { decisions: [], clarifications: [] },
+    provider: { kind: "test", label: "Test" },
+    orchestrator: { kind: "test", label: "Test" },
+    projectSpec: null,
+    intakeQuestions: [],
+    intakeAnswers: [],
+    pendingIntakeQuestions: [],
+    runSummary: null,
+  };
+}
+
+{
+  const prev = payload(["syn-a", "syn-b", "syn-c", "syn-d"]);
+  const next = payload(["syn-a", "syn-b", "syn-c"]);
+  const applied = applyLocalSessionPayloadChange(prev, next, []);
+
+  assert.deepEqual(
+    applied.synthetics.map((item) => item.id),
+    ["syn-a", "syn-b", "syn-c"],
+  );
+}
+
+console.log("applyLocalSessionPayloadChange tests passed");

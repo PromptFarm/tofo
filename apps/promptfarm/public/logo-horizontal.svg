@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 80" width="420" height="80">
+  <line x1="40" y1="40" x2="40"    y2="13"    stroke="#534AB7" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="40" y1="40" x2="63.39" y2="26.51" stroke="#C9A84C" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="40" y1="40" x2="63.39" y2="53.49" stroke="#E05C5C" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="40" y1="40" x2="40"    y2="67"    stroke="#2D6A4F" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="40" y1="40" x2="16.61" y2="53.49" stroke="#7F77DD" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="40" y1="40" x2="16.61" y2="26.51" stroke="#C9A84C" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+  <circle cx="40" cy="10" r="3" fill="#534AB7"/>
+  <circle cx="66" cy="25" r="3" fill="#C9A84C"/>
+  <circle cx="66" cy="55" r="3" fill="#E05C5C"/>
+  <circle cx="40" cy="70" r="3" fill="#2D6A4F"/>
+  <circle cx="14" cy="55" r="3" fill="#7F77DD"/>
+  <circle cx="14" cy="25" r="3" fill="#C9A84C" opacity="0.6"/>
+  <circle cx="40" cy="40" r="3.5" fill="white"/>
+  <line x1="90" y1="10" x2="90" y2="70" stroke="#444441" stroke-width="0.75"/>
+  <text x="106" y="45" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="400" fill="white" letter-spacing="6">TOFO</text>
+  <text x="106" y="62" font-family="Georgia, 'Times New Roman', serif" font-size="10" font-style="italic" fill="#7a776f" letter-spacing="0.5">Thousand Opinions For One</text>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <line x1="80" y1="80" x2="80"     y2="25.5"   stroke="#534AB7" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="80" y1="80" x2="127.21" y2="52.77"  stroke="#C9A84C" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="80" y1="80" x2="127.21" y2="107.23" stroke="#E05C5C" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="80" y1="80" x2="80"     y2="134.5"  stroke="#2D6A4F" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="80" y1="80" x2="32.79"  y2="107.23" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="80" y1="80" x2="32.79"  y2="52.77"  stroke="#C9A84C" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  <circle cx="80"  cy="20"  r="5.5" fill="#534AB7"/>
+  <circle cx="132" cy="50"  r="5.5" fill="#C9A84C"/>
+  <circle cx="132" cy="110" r="5.5" fill="#E05C5C"/>
+  <circle cx="80"  cy="140" r="5.5" fill="#2D6A4F"/>
+  <circle cx="28"  cy="110" r="5.5" fill="#7F77DD"/>
+  <circle cx="28"  cy="50"  r="5.5" fill="#C9A84C" opacity="0.6"/>
+  <circle cx="80"  cy="80"  r="5"   fill="#534AB7"/>
+</svg>

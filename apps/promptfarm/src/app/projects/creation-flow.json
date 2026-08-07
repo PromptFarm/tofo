@@ -1,0 +1,111 @@
+{
+  "version": "1.0",
+  "flows": {
+    "create-project": {
+      "steps": [
+        {
+          "id": "draft",
+          "title": "Creating project",
+          "enabled": true,
+          "requires": [],
+          "provides": ["projectId"],
+          "timeoutMs": 10000,
+          "onError": "throw"
+        },
+        {
+          "id": "upload-files",
+          "title": "Uploading files",
+          "enabled": true,
+          "requires": ["projectId"],
+          "provides": [],
+          "timeoutMs": 30000,
+          "onError": "warn"
+        },
+        {
+          "id": "name",
+          "title": "Naming project",
+          "enabled": true,
+          "requires": ["projectId"],
+          "provides": ["projectName"],
+          "timeoutMs": 15000,
+          "onError": "warn"
+        },
+        {
+          "id": "session",
+          "title": "Building team",
+          "enabled": true,
+          "requires": ["projectId"],
+          "provides": ["sessionId"],
+          "timeoutMs": 20000,
+          "onError": "throw"
+        },
+        {
+          "id": "activate",
+          "title": "Activating",
+          "enabled": true,
+          "requires": ["projectId"],
+          "provides": [],
+          "timeoutMs": 15000,
+          "onError": "throw"
+        },
+        {
+          "id": "intake-stream",
+          "title": "Reading the idea",
+          "enabled": false,
+          "requires": ["sessionId"],
+          "provides": ["intakeQuestions"],
+          "timeoutMs": 90000,
+          "onError": "warn"
+        },
+        {
+          "id": "intake-ui",
+          "title": "Clarifying questions",
+          "enabled": false,
+          "type": "user",
+          "requires": ["intakeQuestions"],
+          "provides": ["intakeAnswers"],
+          "timeoutMs": 0,
+          "onError": "skip"
+        },
+        {
+          "id": "intake-save",
+          "title": "Saving answers",
+          "enabled": false,
+          "requires": ["sessionId"],
+          "provides": [],
+          "timeoutMs": 10000,
+          "onError": "warn"
+        },
+        {
+          "id": "redirect",
+          "title": "Opening project",
+          "enabled": true,
+          "requires": ["projectId"],
+          "provides": [],
+          "timeoutMs": 5000,
+          "onError": "throw"
+        }
+      ]
+    },
+    "autostart": {
+      "steps": [
+        {
+          "id": "director-confirm",
+          "enabled": true,
+          "requires": ["sessionId", "autoPersonaIds"],
+          "provides": ["synthetics"],
+          "timeoutMs": 20000,
+          "onError": "throw"
+        },
+        {
+          "id": "run-simulation",
+          "enabled": true,
+          "requires": ["sessionId", "synthetics"],
+          "provides": ["runId"],
+          "timeoutMs": 300000,
+          "onError": "throw"
+        }
+      ]
+    }
+  }
+}
