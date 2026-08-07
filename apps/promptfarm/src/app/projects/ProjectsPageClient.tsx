@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Trash2, Search, X, Zap, Paperclip } from "lucide-react";
+import { toast } from "sonner";
 import { uploadProjectFile, saveThinkingGraphIntakeAnswers, saveProjectThinkingGraphSession } from "@/lib/thinking-graph/client";
 import { buildThinkingGraphLaunchUrl } from "./launchConfig";
 import type { SyntheticIntakeAnswer, SyntheticIntakeQuestion } from "@/lib/thinking-graph/server/types";
@@ -390,7 +391,9 @@ function CreateProjectModal({ open, draftId, onClose }: { open: boolean; draftId
         const pid = projectIdRef.current;
         if (pid) await saveProjectThinkingGraphSession(pid, payload);
       }
-    } catch {}
+    } catch {
+      toast.error("Couldn't save your answers — starting the run without them.");
+    }
     router.push(buildThinkingGraphLaunchUrl({
       projectId: projectIdRef.current ?? "",
       autoPersonaIds: selectedTeamPersonas().split(",").filter(Boolean),
@@ -409,7 +412,9 @@ function CreateProjectModal({ open, draftId, onClose }: { open: boolean; draftId
     if (sessionId) {
       saveThinkingGraphIntakeAnswers({ sessionId, answers: intakeAnswers })
         .then((payload) => { const pid = projectIdRef.current; if (pid) return saveProjectThinkingGraphSession(pid, payload); })
-        .catch(() => {});
+        .catch(() => {
+          toast.error("Couldn't save your answers — starting the run without them.");
+        });
     }
     router.push(buildThinkingGraphLaunchUrl({
       projectId: projectIdRef.current ?? "",
@@ -443,7 +448,9 @@ function CreateProjectModal({ open, draftId, onClose }: { open: boolean; draftId
       reset();
       onClose();
       router.refresh();
-    } catch {}
+    } catch {
+      toast.error("Something went wrong saving the draft — your progress may be incomplete. Try again.");
+    }
     finally { setBusy(false); setLaunchStep(""); }
   }
 
