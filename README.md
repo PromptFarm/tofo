@@ -49,6 +49,8 @@ macOS builds go through `pnpm --dir apps/desktop exec tauri build --bundles dmg`
 
 More detail, including why it's structured this way, in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+Building a graph and want your agents to actually disagree with each other instead of echoing the same generic opinion? See [docs/SYNTHETICS_GUIDE.md](docs/SYNTHETICS_GUIDE.md).
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports and PRs welcome.
