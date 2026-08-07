@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "jiti scripts/warm-db.ts",
     "build": "next build",
     "build:desktop": "bash scripts/build-desktop.sh",
     "start": "next start",
