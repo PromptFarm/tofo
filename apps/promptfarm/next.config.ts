@@ -20,10 +20,6 @@ const nextConfig: NextConfig = {
       { source: "/teams/:path*", destination: "/tofo/teams/:path*", permanent: false },
       { source: "/thinking-graph", destination: "/tofo/thinking-graph", permanent: false },
       { source: "/thinking-graph/:path*", destination: "/tofo/thinking-graph/:path*", permanent: false },
-      { source: "/idea-builder", destination: "/tofo/idea-builder", permanent: false },
-      { source: "/idea-builder/:path*", destination: "/tofo/idea-builder/:path*", permanent: false },
-      { source: "/plan-builder", destination: "/tofo/plan-builder", permanent: false },
-      { source: "/plan-builder/:path*", destination: "/tofo/plan-builder/:path*", permanent: false },
       { source: "/settings", destination: "/tofo/settings", permanent: false },
       { source: "/settings/:path*", destination: "/tofo/settings/:path*", permanent: false },
     ];
@@ -38,10 +34,6 @@ const nextConfig: NextConfig = {
       { source: "/tofo/teams/:path*", destination: "/teams/:path*" },
       { source: "/tofo/thinking-graph", destination: "/thinking-graph" },
       { source: "/tofo/thinking-graph/:path*", destination: "/thinking-graph/:path*" },
-      { source: "/tofo/idea-builder", destination: "/idea-builder" },
-      { source: "/tofo/idea-builder/:path*", destination: "/idea-builder/:path*" },
-      { source: "/tofo/plan-builder", destination: "/plan-builder" },
-      { source: "/tofo/plan-builder/:path*", destination: "/plan-builder/:path*" },
     ];
   },
 };

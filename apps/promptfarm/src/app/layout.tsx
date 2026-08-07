@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
-import { DemoPlaybackProvider } from "@/lib/planning/demo-playback-store";
 import { ThemeProvider } from "@/lib/theme-context";
 import { Toaster } from "sonner";
 
@@ -81,10 +80,8 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <DemoPlaybackProvider>
-            {children}
-            <Toaster position="top-right" richColors />
-          </DemoPlaybackProvider>
+          {children}
+          <Toaster position="top-right" richColors />
         </ThemeProvider>
       </body>
     </html>
