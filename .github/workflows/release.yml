@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: bash apps/desktop/scripts/package-portable-zip.sh
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: tofo-desktop-windows
           path: apps/desktop/dist/*.zip
@@ -69,7 +69,7 @@ jobs:
       - name: Build .dmg
         run: pnpm --dir apps/desktop exec tauri build --bundles dmg
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: tofo-desktop-macos
           path: apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
@@ -100,7 +100,7 @@ jobs:
       - name: Build AppImage
         run: pnpm --dir apps/desktop exec tauri build --bundles appimage
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: tofo-desktop-linux
           path: apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
