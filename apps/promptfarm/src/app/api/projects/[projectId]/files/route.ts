@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentSupabaseUser } from "@/lib/auth";
+import { getCurrentLocalUser } from "@/lib/auth";
 import {
   createProjectFile,
   getProjectById,
@@ -78,7 +78,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ projectId: string }> },
 ) {
-  const user = await getCurrentSupabaseUser();
+  const user = await getCurrentLocalUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -101,7 +101,7 @@ export async function POST(
 ) {
   const startedAt = performance.now();
   try {
-    const user = await getCurrentSupabaseUser();
+    const user = await getCurrentLocalUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

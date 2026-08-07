@@ -10,12 +10,10 @@ const nextConfig: NextConfig = {
   // real server. `standalone` bundles server.js + a pruned node_modules.
   output: "standalone",
   outputFileTracingRoot: path.join(appDir, "../.."),
-  serverExternalPackages: ["axios", "@prisma/client", "@prisma/adapter-pg"],
+  serverExternalPackages: ["axios"],
   async redirects() {
     return [
       { source: "/landing", destination: "/", permanent: false },
-      { source: "/login", destination: "/tofo/auth", permanent: false },
-      { source: "/auth/:path*", destination: "/tofo/auth/:path*", permanent: false },
       { source: "/projects", destination: "/tofo/projects", permanent: false },
       { source: "/projects/:path*", destination: "/tofo/projects/:path*", permanent: false },
       { source: "/teams", destination: "/tofo/teams", permanent: false },
@@ -32,10 +30,8 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      { source: "/tofo/auth", destination: "/login" },
       { source: "/tofo/settings", destination: "/settings" },
       { source: "/tofo/settings/:path*", destination: "/settings/:path*" },
-      { source: "/tofo/auth/:path*", destination: "/auth/:path*" },
       { source: "/tofo/projects", destination: "/projects" },
       { source: "/tofo/projects/:path*", destination: "/projects/:path*" },
       { source: "/tofo/teams", destination: "/teams" },

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentSupabaseUser } from "@/lib/auth";
+import { getCurrentLocalUser } from "@/lib/auth";
 import {
   deleteProjectFileRecord,
   getProjectFileForUser,
@@ -10,7 +10,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ projectId: string; fileId: string }> },
 ) {
-  const user = await getCurrentSupabaseUser();
+  const user = await getCurrentLocalUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

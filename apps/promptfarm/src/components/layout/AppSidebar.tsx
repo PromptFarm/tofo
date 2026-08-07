@@ -10,7 +10,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { SignOutButton } from "@/components/auth/SignOutButton";
 import {
   Tooltip,
   TooltipContent,
@@ -115,10 +114,6 @@ export function AppSidebar({ active, defaultCollapsed = false }: { active: AppSe
               />
             ))}
           </nav>
-
-          <div className="mb-8">
-            <SignOutButton collapsed={collapsed} />
-          </div>
         </div>
       </aside>
     </TooltipProvider>
