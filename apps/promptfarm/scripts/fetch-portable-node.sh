@@ -4,9 +4,9 @@
 # exists). Used so the desktop app never depends on the end user having
 # Node.js installed system-wide — see lib.rs's `resolve_bundled_node_path()`.
 #
-# Windows and macOS are both handled (tested on Windows; macOS path is
-# written the same way but unverified — this repo currently only builds on
-# Windows, macOS builds need a real Mac or CI with a macos runner).
+# Windows, macOS, and Linux are all handled (tested on Windows; macOS/Linux
+# paths are written the same way but only verified via CI, since this repo's
+# own build machine is Windows-only).
 set -euo pipefail
 
 NODE_VERSION="24.14.1"
@@ -26,6 +26,12 @@ case "$(uname -s)" in
   Darwin)
     ARCH="$(uname -m)"
     if [ "$ARCH" = "arm64" ]; then PLATFORM="darwin-arm64"; else PLATFORM="darwin-x64"; fi
+    ARCHIVE_EXT="tar.gz"
+    BIN_NAME="node"
+    ;;
+  Linux)
+    ARCH="$(uname -m)"
+    if [ "$ARCH" = "aarch64" ]; then PLATFORM="linux-arm64"; else PLATFORM="linux-x64"; fi
     ARCHIVE_EXT="tar.gz"
     BIN_NAME="node"
     ;;

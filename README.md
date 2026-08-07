@@ -7,7 +7,7 @@ It runs as a native desktop app on your own machine, talking to Claude (your sub
 [![CI](https://github.com/PromptFarm/tofo/actions/workflows/ci.yml/badge.svg)](https://github.com/PromptFarm/tofo/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/PromptFarm/tofo)](https://github.com/PromptFarm/tofo/releases/latest)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue)
+![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 [![Downloads](https://img.shields.io/github/downloads/PromptFarm/tofo/total)](https://github.com/PromptFarm/tofo/releases)
 
 ## Download
@@ -26,6 +26,7 @@ Or grab it manually from [the latest release](https://github.com/PromptFarm/tofo
 
 - **Windows** — `TOFO-<version>-windows-x64.zip`. Extract it anywhere and run `TOFO.exe`. No installer, no admin rights.
 - **macOS** — `TOFO-<version>.dmg`. Open it and drag TOFO to Applications.
+- **Linux** — `TOFO-<version>.AppImage`. Make it executable (`chmod +x`) and run it. No installation.
 
 On first launch, TOFO asks which model to use: a local Ollama model, an Anthropic API key, or your `claude` CLI subscription. Nothing is sent anywhere until you choose.
 
@@ -39,7 +40,7 @@ pnpm --dir apps/desktop tauri dev      # run in dev mode
 bash apps/desktop/scripts/package-portable-zip.sh   # build a portable Windows zip
 ```
 
-macOS builds go through `pnpm --dir apps/desktop exec tauri build --bundles dmg` — see [.github/workflows/release.yml](.github/workflows/release.yml) for the exact CI steps.
+macOS builds go through `pnpm --dir apps/desktop exec tauri build --bundles dmg`, Linux through `--bundles appimage` — see [.github/workflows/release.yml](.github/workflows/release.yml) for the exact CI steps.
 
 ## How it's built
 
