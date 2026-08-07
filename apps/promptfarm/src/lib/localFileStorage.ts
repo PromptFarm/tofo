@@ -3,9 +3,11 @@ import { dirname, join, normalize, sep } from "node:path";
 
 // Replaces Supabase Storage (see git history — apps/promptfarm/src/lib/supabase/storage-admin.ts).
 // This is a local desktop app with no cloud backend, so project files just
-// live on disk next to the SQLite database, under the same app-data
-// directory (see lib/sqlite/db.ts's DB_PATH for the sibling pattern).
-const FILES_ROOT = join(process.cwd(), ".promptfarm", "files");
+// live on disk next to the SQLite database, under the same stable app-data
+// directory (see lib/sqlite/db.ts's DATA_DIR for why it can't be
+// process.cwd() alone in the desktop build).
+const DATA_DIR = process.env.PROMPTFARM_DATA_DIR ?? process.cwd();
+const FILES_ROOT = join(DATA_DIR, ".promptfarm", "files");
 
 // storagePath values are built server-side from a random UUID + a
 // sanitized filename (see the upload route) — never taken verbatim from a
