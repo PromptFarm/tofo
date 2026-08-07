@@ -50,8 +50,6 @@ More detail, including why it's structured this way, in [docs/ARCHITECTURE.md](d
 
 ## Status
 
-TOFO is early. Being upfront about what's real:
-
 | | |
 |---|---|
 | Graph canvas, roles, dependencies/conflicts | Real |
