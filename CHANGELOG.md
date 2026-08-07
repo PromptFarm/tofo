@@ -16,5 +16,5 @@ Initial open-source release.
 - Native desktop shell (Windows portable `.zip`, macOS `.dmg`) with a bundled portable Node.js runtime — no system dependencies required
 - Final Report: executive brief, per-agent summaries, decision matrix, conflict map
 
-[Unreleased]: https://github.com/PromptFarm/tofo/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/PromptFarm/tofo/releases/tag/v0.1.0
+[Unreleased]: https://github.com/PromptFarm/tofo/compare/desktop-v0.1.0...HEAD
+[0.1.0]: https://github.com/PromptFarm/tofo/releases/tag/desktop-v0.1.0
