@@ -77,13 +77,14 @@ Deleting that folder resets TOFO to a clean first-run state (equivalent to a fre
 
 See the README's status table. The graph, simulation ordering, persistence, all three model providers, agent opinions, and the Final Report are real — driven by actual model output through typed data structures (`SyntheticOutputJson`, `RunSummaryReport` in `src/lib/thinking-graph/server/types.ts`), not hardcoded placeholder strings.
 
-Two exceptions, both scoped and identifiable:
+One exception, scoped and identifiable:
 
 - `src/lib/planning/mock-project.ts` seeds fake data for the `/idea-builder` and `/plan-builder` pages — earlier prototypes that predate the main `/projects` → graph → simulation flow and aren't wired to it. If you're working on the main flow, this file is irrelevant.
-- The re-run-after-clarification path doesn't reliably instruct the model to revise its prior output — see the open issue.
 
-## Known bugs (fixed and open)
+## Known bugs (fixed)
 
 **Fixed (2026-08-07):** the simulation engine used to stagger each agent's start by a fixed `agentIndex * 5000ms` delay as a stand-in for real dependency ordering. With 3+ agents this routinely raced the "upstream readiness" check — an agent still waiting out its own artificial delay looked identical to one that would never run, so a later agent could get a "waiting for upstream" placeholder instead of running for real. Fixed by starting all agents in the same tick instead of staggering them (see the comment above the `Promise.all` in `orchestrator.ts` for the full explanation).
 
-**Open:** re-running a synthetic after answering a clarification question in chat sends the model a generic "describe your role" prompt instead of an instruction to revise its previous output in light of the clarification. The prompt-construction path for this case needs to actually branch on "is this a clarification-triggered re-run" rather than falling through to the default prompt. See the failing `runThinkingGraphRerunUsesChatClarificationTest` in `thinkingGraphServer.integration.test.ts` for a reproduction.
+**Fixed (2026-08-07):** this doc used to list the re-run-after-clarification path as an open bug, pointing at a failing test as the reproduction. Turned out to be the reverse: the actual behavior (prior-output context injection, clarification history folded into the next prompt) already worked — the test just asserted specific wording that was never implemented. Fixed the test's expected wording, not the code. A useful reminder that "there's a failing test for it" isn't proof the code is wrong until you've actually read what the test expects.
+
+**Fixed (2026-08-07):** `next build`'s page-data-collection phase runs several worker processes in parallel, each independently opening the SQLite DB (`src/lib/sqlite/db.ts`) — against a database file that doesn't exist yet, they raced to run the schema-creation `CREATE TABLE` statements and threw `SQLITE_BUSY` ("database is locked"). This was invisible until CI actually ran `next build` for the first time (previously only the test suite ran in CI). Fixed two ways: `PRAGMA busy_timeout` is now set before `PRAGMA journal_mode = WAL` on every connection open (order matters — `journal_mode` itself touches the file and can lose the race before `busy_timeout` takes effect if set after), and a `prebuild` script (`scripts/warm-db.ts`) creates the DB file and schema once, single-process, before `next build`'s workers start, so there's nothing left to race over.
