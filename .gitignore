@@ -1,0 +1,14 @@
+node_modules/
+.next/
+dist/
+target/
+*.log
+
+# local SQLite data
+.promptfarm/
+*.db
+*.db-wal
+*.db-shm
+
+.env
+.env.local

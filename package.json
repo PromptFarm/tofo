@@ -1,0 +1,13 @@
+{
+  "name": "tofo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "TOFO — a simulated team for solo builders",
+  "packageManager": "pnpm@9.0.0",
+  "license": "MIT",
+  "scripts": {
+    "dev": "pnpm --dir apps/desktop tauri dev",
+    "build:zip": "bash apps/desktop/scripts/package-portable-zip.sh",
+    "test": "pnpm --dir apps/promptfarm test"
+  }
+}
