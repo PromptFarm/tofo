@@ -75,4 +75,15 @@ Deleting that folder resets TOFO to a clean first-run state (equivalent to a fre
 
 ## What's mocked, honestly
 
-See the README's status table. The graph, simulation ordering, persistence, and all three model providers are real. Some of the Final Report's generated content and individual agent opinions are still placeholder text (`FAKE_OPINION`, `FAKE_SUMMARIES` — searchable), being replaced incrementally. If you're picking up an issue, it's worth checking whether the surface you're touching is one of these before assuming existing behavior is intentional.
+See the README's status table. The graph, simulation ordering, persistence, all three model providers, agent opinions, and the Final Report are real — driven by actual model output through typed data structures (`SyntheticOutputJson`, `RunSummaryReport` in `src/lib/thinking-graph/server/types.ts`), not hardcoded placeholder strings.
+
+Two exceptions, both scoped and identifiable:
+
+- `src/lib/planning/mock-project.ts` seeds fake data for the `/idea-builder` and `/plan-builder` pages — earlier prototypes that predate the main `/projects` → graph → simulation flow and aren't wired to it. If you're working on the main flow, this file is irrelevant.
+- The re-run-after-clarification path doesn't reliably instruct the model to revise its prior output — see the open issue.
+
+## Known bugs (fixed and open)
+
+**Fixed (2026-08-07):** the simulation engine used to stagger each agent's start by a fixed `agentIndex * 5000ms` delay as a stand-in for real dependency ordering. With 3+ agents this routinely raced the "upstream readiness" check — an agent still waiting out its own artificial delay looked identical to one that would never run, so a later agent could get a "waiting for upstream" placeholder instead of running for real. Fixed by starting all agents in the same tick instead of staggering them (see the comment above the `Promise.all` in `orchestrator.ts` for the full explanation).
+
+**Open:** re-running a synthetic after answering a clarification question in chat sends the model a generic "describe your role" prompt instead of an instruction to revise its previous output in light of the clarification. The prompt-construction path for this case needs to actually branch on "is this a clarification-triggered re-run" rather than falling through to the default prompt. See the failing `runThinkingGraphRerunUsesChatClarificationTest` in `thinkingGraphServer.integration.test.ts` for a reproduction.

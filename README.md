@@ -58,9 +58,11 @@ TOFO is early. Being upfront about what's real:
 | Simulation (dependency order, partial re-run, versioning) | Real |
 | Local persistence (SQLite, no cloud) | Real |
 | Claude CLI / API / Ollama providers | Real |
-| Agent opinions and the Final Report's per-agent content | Partially mocked — the structure and UI are real, some of the generated text is still placeholder, being replaced with real model output incrementally |
+| Agent opinions and the Final Report | Real — driven by actual model output, not placeholder text |
 
-If something looks canned, it probably still is — check [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) or open an issue.
+Known issues being worked on — see [open issues](https://github.com/PromptFarm/tofo/issues):
+- Re-running after a chat clarification doesn't consistently instruct the model to revise its previous output rather than start fresh
+- The `idea-builder` and `plan-builder` pages are earlier prototypes and still use mock data — the main flow (`/projects` → graph → simulation) doesn't
 
 ## Contributing
 
