@@ -194,10 +194,29 @@ fn spawn_production_server(app: &tauri::App) -> Option<Child> {
     .as_ref()
     .and_then(|f| f.try_clone().ok());
 
-  match Command::new(&node_path)
+  // The SQLite database and uploaded project files default to living under
+  // the server's cwd (see db.ts/localFileStorage.ts) — but that cwd is
+  // *inside* the extracted next-standalone folder, which gets deleted and
+  // re-extracted on every version change (see ensure_server_extracted).
+  // Without this, every app update would silently wipe all of the user's
+  // projects. PROMPTFARM_DATA_DIR points them at the stable parent instead.
+  let data_dir = app
+    .path()
+    .app_local_data_dir()
+    .ok()
+    .map(|d| strip_verbatim_prefix(&d));
+
+  let mut command = Command::new(&node_path);
+  command
     .arg(&server_js)
     .current_dir(&server_cwd)
-    .env("PORT", SERVER_PORT.to_string())
+    .env("PORT", SERVER_PORT.to_string());
+  if let Some(data_dir) = &data_dir {
+    command.env("PROMPTFARM_DATA_DIR", data_dir);
+  } else {
+    log::error!("could not resolve app_local_data_dir — database/files will live inside the versioned extraction folder and be wiped on update");
+  }
+  match command
     // Provider choice now lives in the Settings screen (AppSetting table in
     // SQLite), not here — first run redirects to /tofo/settings until the
     // user picks Ollama / Claude API key / Claude CLI.

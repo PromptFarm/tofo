@@ -3,7 +3,14 @@ import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { CREATE_TABLES_SQL } from "./schema";
 
-const DB_PATH = join(process.cwd(), ".promptfarm", "promptfarm.db");
+// In the desktop build, the Rust shell sets PROMPTFARM_DATA_DIR to a stable
+// location outside the extracted server folder — that folder gets deleted
+// and re-extracted on every app update (see lib.rs's ensure_server_extracted),
+// so a database living inside it would be wiped on every update. Falls back
+// to process.cwd() for the plain web app (`pnpm dev`/`pnpm start`), where
+// there's no such extraction step and cwd is already stable.
+const DATA_DIR = process.env.PROMPTFARM_DATA_DIR ?? process.cwd();
+const DB_PATH = join(DATA_DIR, ".promptfarm", "promptfarm.db");
 
 declare global {
   // eslint-disable-next-line no-var
