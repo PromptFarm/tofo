@@ -23,6 +23,14 @@ function createDb(): DatabaseSync {
     mkdirSync(dir, { recursive: true });
   }
   const db = new DatabaseSync(DB_PATH);
+  // Rollback-journal mode (the default) takes an exclusive lock for the
+  // whole CREATE TABLE transaction, so concurrent processes opening a fresh
+  // DB file at once (e.g. next build's parallel page-data-collection
+  // workers) throw "database is locked" instead of waiting. WAL lets
+  // readers/writers coexist; busy_timeout makes any remaining contention
+  // retry instead of failing immediately.
+  db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA busy_timeout = 5000");
   db.exec(CREATE_TABLES_SQL);
   return db;
 }
