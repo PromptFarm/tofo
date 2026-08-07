@@ -2282,7 +2282,7 @@ async function runThinkingGraphRerunUsesChatClarificationTest(): Promise<void> {
     assert.match(designerPrompt, /Applied clarification history for this iteration:/)
     assert.match(
       designerPrompt,
-      /Revise your previous synthetic output instead of generating a fresh generic role description\./,
+      /Build on your previous simulation output rather than writing a generic role description from scratch\./,
     )
     assert.match(
       designerPrompt,
