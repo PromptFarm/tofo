@@ -104,7 +104,7 @@ fn strip_verbatim_prefix(path: &std::path::Path) -> std::path::PathBuf {
 // install directory under Program Files, which is often read-only for
 // non-admin users) and re-extracted only when the bundled app version
 // changes, so ordinary launches don't pay a ~400MB unzip cost every time.
-fn ensure_server_extracted(app: &tauri::App) -> Option<std::path::PathBuf> {
+fn ensure_server_extracted(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
   let resource_dir = app.path().resource_dir().ok()?;
   let archive_path = strip_verbatim_prefix(&resource_dir.join("next-standalone.tar.gz"));
   if !archive_path.exists() {
@@ -168,7 +168,7 @@ fn resolve_bundled_node_path(extract_dir: &std::path::Path) -> Option<std::path:
   }
 }
 
-fn spawn_production_server(app: &tauri::App) -> Option<Child> {
+fn spawn_production_server(app: &tauri::AppHandle) -> Option<Child> {
   let extract_dir = ensure_server_extracted(app)?;
   let server_js = extract_dir.join("apps").join("promptfarm").join("server.js");
   let server_cwd = server_js.parent().unwrap().to_path_buf();
@@ -257,36 +257,51 @@ pub fn run() {
       // placeholder (`frontendDist`) and this is what replaces it with the
       // bundled, real Next.js server once it's ready.
       if !cfg!(debug_assertions) {
-        let node_missing = resolve_node_path().is_none() && Command::new("node").arg("--version").output().is_err();
-        let child = spawn_production_server(app);
-        let spawn_failed = child.is_none();
-        app.manage(Mutex::new(ServerProcess(child)));
+        // Everything here — the `node --version` probe, extracting the
+        // bundled archive (up to ~400MB on first run or after an update),
+        // spawning the server, and polling for it to come up — used to run
+        // inline in .setup(), which is the main UI thread. On a slow disk
+        // the extraction alone could block the event loop for seconds; the
+        // TCP poll added up to 30s more on top. Either way the placeholder
+        // window couldn't repaint and looked hung rather than loading.
+        // Running the whole sequence on a background thread keeps the UI
+        // responsive; run_on_main_thread hands only the final window
+        // mutation (navigate / show_startup_error) back to the main thread,
+        // which Tauri's webview APIs require.
+        let app_handle = app.handle().clone();
+        std::thread::spawn(move || {
+          let node_missing = resolve_node_path().is_none() && Command::new("node").arg("--version").output().is_err();
+          let child = spawn_production_server(&app_handle);
+          let spawn_failed = child.is_none();
+          app_handle.manage(Mutex::new(ServerProcess(child)));
 
-        if !spawn_failed && wait_for_server_ready(SERVER_PORT, Duration::from_secs(30)) {
-          if let Some(window) = app.get_webview_window("main") {
-            let url = format!("http://127.0.0.1:{SERVER_PORT}/").parse().unwrap();
-            let _ = window.navigate(url);
-          }
-        } else {
-          log::error!("bundled server did not become ready within 30s");
-          if let Some(window) = app.get_webview_window("main") {
-            if node_missing {
-              show_startup_error(
-                &window,
-                "Node.js required",
-                "TOFO needs Node.js installed to run its local server. Install it from nodejs.org, then restart TOFO.",
-                Some("https://nodejs.org/"),
-              );
+          let server_ready = !spawn_failed && wait_for_server_ready(SERVER_PORT, Duration::from_secs(30));
+          let main_thread_handle = app_handle.clone();
+          let _ = app_handle.run_on_main_thread(move || {
+            let Some(window) = main_thread_handle.get_webview_window("main") else { return };
+            if server_ready {
+              let url = format!("http://127.0.0.1:{SERVER_PORT}/").parse().unwrap();
+              let _ = window.navigate(url);
             } else {
-              show_startup_error(
-                &window,
-                "TOFO failed to start",
-                "The local server didn't start in time. Check the log file for details, or restart TOFO.",
-                None,
-              );
+              log::error!("bundled server did not become ready within 30s");
+              if node_missing {
+                show_startup_error(
+                  &window,
+                  "Node.js required",
+                  "TOFO needs Node.js installed to run its local server. Install it from nodejs.org, then restart TOFO.",
+                  Some("https://nodejs.org/"),
+                );
+              } else {
+                show_startup_error(
+                  &window,
+                  "TOFO failed to start",
+                  "The local server didn't start in time. Check the log file for details, or restart TOFO.",
+                  None,
+                );
+              }
             }
-          }
-        }
+          });
+        });
       }
 
       // ── System tray: closing the window hides it instead of quitting the
@@ -333,6 +348,22 @@ pub fn run() {
         api.prevent_close();
       }
     })
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    .build(tauri::generate_context!())
+    .expect("error while building tauri application")
+    .run(|app_handle, event| {
+      // `Child` is not killed automatically when dropped, and app.exit(0)
+      // (the tray "Quit" handler) tears down the process without ever
+      // dropping the managed state — so without this, the bundled Node
+      // server survives as an orphan holding the SQLite DB lock and
+      // port 3100, breaking the *next* launch until it's killed manually.
+      if let tauri::RunEvent::Exit = event {
+        if let Some(state) = app_handle.try_state::<Mutex<ServerProcess>>() {
+          if let Ok(mut guard) = state.lock() {
+            if let Some(child) = guard.0.as_mut() {
+              let _ = child.kill();
+            }
+          }
+        }
+      }
+    });
 }
