@@ -37,6 +37,8 @@ function payload(syntheticIds: string[]): SyntheticGraphPayload {
     intakeAnswers: [],
     pendingIntakeQuestions: [],
     runSummary: null,
+    recommendedSolutions: [],
+    proposedImprovements: [],
   };
 }
 

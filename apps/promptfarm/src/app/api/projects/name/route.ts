@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       temperature: 0.7,
     });
 
-    let name = result.text.trim().replace(/^["']|["']$/g, "").slice(0, 80);
+    const name = result.text.trim().replace(/^["']|["']$/g, "").slice(0, 80);
 
     // Ensure uniqueness for this user
     let candidate = name;

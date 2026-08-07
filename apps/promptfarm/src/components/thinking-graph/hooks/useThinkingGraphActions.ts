@@ -1,15 +1,29 @@
+import type { Connection } from "@xyflow/react";
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { fetchRunOutputs } from "@/lib/thinking-graph/client";
 
-import type { SyntheticEdge, SyntheticNode } from "@/lib/planning/types";
+import type { IterationNode, SyntheticEdge, SyntheticNode } from "@/lib/planning/types";
 import type { RunStats } from "@/lib/run-context";
 import { buildRunSummaryReport } from "@/lib/thinking-graph/reportSummary";
 import type {
   RunSummaryConflict,
+  RunSummaryReport,
   SyntheticGraphPayload,
+  SyntheticOutputJson,
 } from "@/lib/thinking-graph/server/types";
-import type { RuntimeNodeStatus, SimulationRun } from "../runtime/runtimeTypes";
+import type {
+  ChatUpdatedOpinion,
+  RuntimeNodeStatus,
+  SimulationRun,
+  SyntheticNodeProgress,
+} from "../runtime/runtimeTypes";
+import type { BuildRestoreStateInput } from "./useThinkingGraphHistory";
+import type { ExecuteRunInput, RunExecutionResult } from "./useThinkingGraphRuntime";
+import type {
+  RecordBranchingRunInput,
+  RecordSimpleRunInput,
+} from "../state/useThinkingGraphVersionStore";
 import { useThinkingGraphUiStore } from "../state/useThinkingGraphUiStore";
 import { useThinkingGraphChatStore } from "../state/useThinkingGraphChatStore";
 import {
@@ -43,31 +57,41 @@ export type UseThinkingGraphActionsParams = {
   setRootPrompt: (prompt: string) => void;
   setActiveRunId: (id: string) => void;
   createIterationPromptFromActiveRun: (() => string | null) | null;
-  recordSimpleRun: (input: any) => SimulationRun | null;
-  recordBranchingRun: (input: any) => SimulationRun | null;
+  recordSimpleRun: (input: RecordSimpleRunInput) => SimulationRun | null;
+  recordBranchingRun: (input: RecordBranchingRunInput) => SimulationRun | null;
   resetHistoryState: () => void;
-  buildRestoreState: (input: any) => any;
+  buildRestoreState: (input: BuildRestoreStateInput) => { toRemove: string[]; toAdd: SyntheticNode[] };
   // Runtime hook
   setRunStatus: (status: "idle" | "running" | "done" | "error") => void;
-  setRuntimeByNodeId: (state: any) => void;
-  setViewingRunOutputs: (outputs: Record<string, any> | null) => void;
-  setSyntheticProgressByNodeId: (state: Record<string, any>) => void;
+  setRuntimeByNodeId: (
+    state:
+      | Record<string, RuntimeNodeStatus>
+      | ((prev: Record<string, RuntimeNodeStatus>) => Record<string, RuntimeNodeStatus>),
+  ) => void;
+  setViewingRunOutputs: (outputs: Record<string, SyntheticOutputJson | null> | null) => void;
+  setSyntheticProgressByNodeId: (state: Record<string, SyntheticNodeProgress>) => void;
   setRunErrorMessage: (error: string | null) => void;
   setChatUpdatedNodeIds: (ids: Set<string>) => void;
-  chatUpdatedOpinions: Record<string, any>;
-  setChatUpdatedOpinions: (opinions: Record<string, any>) => void;
+  chatUpdatedOpinions: Record<string, ChatUpdatedOpinion>;
+  setChatUpdatedOpinions: (opinions: Record<string, ChatUpdatedOpinion>) => void;
   setChatDraftByNodeId: (updater: (prev: Record<string, string>) => Record<string, string>) => void;
-  executeRun: (input: any) => Promise<any>;
+  executeRun: (input: ExecuteRunInput) => Promise<RunExecutionResult | null>;
   resetRuntimeState: () => void;
-  outputsBySyntheticId: Record<string, any>;
+  outputsBySyntheticId: Record<string, SyntheticOutputJson | null>;
   chatUpdatedNodeIds: Set<string>;
   runStatus: string;
-  runtimeByNodeId: Record<string, any>;
+  runtimeByNodeId: Record<string, RuntimeNodeStatus>;
   // Editor hook
-  setAddedSyntheticsByRevision: (updater: (prev: any) => any) => void;
-  setRemovedSyntheticIdsByRevision: (updater: (prev: any) => any) => void;
+  setAddedSyntheticsByRevision: (
+    updater: (prev: Record<string, SyntheticNode[]>) => Record<string, SyntheticNode[]>,
+  ) => void;
+  setRemovedSyntheticIdsByRevision: (
+    updater: (prev: Record<string, string[]>) => Record<string, string[]>,
+  ) => void;
   setPendingRoleDeleteId: (id: string | null) => void;
-  setPendingConnection: (conn: any) => void;
+  setPendingConnection: (
+    conn: { connection: Connection; sourceId: string; targetId: string } | null,
+  ) => void;
   resetEditorState: () => void;
   // RunContext
   setRunStats: (stats: RunStats | null) => void;
@@ -76,7 +100,7 @@ export type UseThinkingGraphActionsParams = {
   projectId: string | null;
   onSelectNode: (nodeId: string | null) => void;
   onRevisionEdgesChange: (edges: SyntheticEdge[]) => void;
-  selectedRevision: any;
+  selectedRevision: IterationNode | null;
   sessionPayload: SyntheticGraphPayload | null;
   // Computed values
   syntheticNodeIds: string[];
@@ -87,7 +111,7 @@ export type UseThinkingGraphActionsParams = {
   currentRevisionId: string | null;
   currentRecommendationDigest: string[];
   appliedChatDigest: string[];
-  currentSummaryReport: any;
+  currentSummaryReport: RunSummaryReport;
   isRunInProgress: boolean;
   revisionEdges: SyntheticEdge[];
   simulationHistory: SimulationRun[];
@@ -236,11 +260,11 @@ export function useThinkingGraphActions(params: UseThinkingGraphActionsParams) {
             (synthetic: SyntheticNode) => synthetic.id,
           ) ?? [],
       });
-      params.setRemovedSyntheticIdsByRevision((prev: any) => ({
+      params.setRemovedSyntheticIdsByRevision((prev) => ({
         ...prev,
         [params.currentRevisionId!]: toRemove,
       }));
-      params.setAddedSyntheticsByRevision((prev: any) => ({
+      params.setAddedSyntheticsByRevision((prev) => ({
         ...prev,
         [params.currentRevisionId!]: toAdd,
       }));
@@ -485,7 +509,7 @@ export function useThinkingGraphActions(params: UseThinkingGraphActionsParams) {
     cancelRunTimers();
     incrementRunTokenCounter();
     params.setRunStatus("idle");
-    params.setRuntimeByNodeId((prev: Record<string, string>) => {
+    params.setRuntimeByNodeId((prev) => {
       const next = { ...prev };
       for (const [id, status] of Object.entries(next)) {
         if (status === "running" || status === "idle") delete next[id];
@@ -560,7 +584,7 @@ export function useThinkingGraphActions(params: UseThinkingGraphActionsParams) {
     params.setRunStats(null);
     params.onSelectNode(null);
 
-    params.setRuntimeByNodeId((prev: Record<string, string>) => {
+    params.setRuntimeByNodeId((prev) => {
       const next = { ...prev };
       for (const nodeId of params.syntheticNodeIds) {
         next[nodeId] = affectedNodeIds.has(nodeId) ? "idle" : "done";
@@ -619,7 +643,7 @@ export function useThinkingGraphActions(params: UseThinkingGraphActionsParams) {
           if (params.syntheticNodeIdSet.has(e.to)) conflictNodeIds.add(e.to);
         });
         if (conflictNodeIds.size > 0) {
-          params.setRuntimeByNodeId((prev: Record<string, string>) => {
+          params.setRuntimeByNodeId((prev) => {
             const next = { ...prev };
             conflictNodeIds.forEach((id) => { if (next[id] === "done") next[id] = "conflict"; });
             return next;
@@ -682,7 +706,7 @@ export function useThinkingGraphActions(params: UseThinkingGraphActionsParams) {
 
         launchedAny = true;
         running.add(nodeId);
-        params.setRuntimeByNodeId((prev: Record<string, string>) => ({ ...prev, [nodeId]: "running" }));
+        params.setRuntimeByNodeId((prev) => ({ ...prev, [nodeId]: "running" }));
 
         const synth = params.visibleSynthetics.find((s) => s.id === nodeId);
         const nodeLabel = synth ? `[${synth.code}] ${synth.name}` : nodeId;
@@ -693,7 +717,7 @@ export function useThinkingGraphActions(params: UseThinkingGraphActionsParams) {
           if (useThinkingGraphUiStore.getState().runTokenCounter !== runToken) return;
           running.delete(nodeId);
           completed.add(nodeId);
-          params.setRuntimeByNodeId((prev: Record<string, string>) => ({ ...prev, [nodeId]: "done" }));
+          params.setRuntimeByNodeId((prev) => ({ ...prev, [nodeId]: "done" }));
           params.setCompletedAgentCount(
             Array.from(affectedNodeIds).filter((id) => completed.has(id)).length,
           );
@@ -710,7 +734,7 @@ export function useThinkingGraphActions(params: UseThinkingGraphActionsParams) {
         params.setRunErrorMessage(msg);
         appendLog(null, msg, "error");
         toast.error(msg);
-        params.setRuntimeByNodeId((prev: Record<string, string>) => {
+        params.setRuntimeByNodeId((prev) => {
           const next = { ...prev };
           params.syntheticNodeIds.forEach((id) => { if (!completed.has(id)) next[id] = "blocked"; });
           return next;

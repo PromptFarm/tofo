@@ -589,7 +589,7 @@ function CreateProjectModal({ open, draftId, onClose }: { open: boolean; draftId
                             ))}
                             {showCustom && (
                               <button type="button" onMouseDown={() => addTag(tagInput)} className={cn("w-full text-left py-[7px] px-3 bg-transparent border-none cursor-pointer text-[11px] font-mono text-[var(--t3)] hover:bg-[var(--surface-low)]", suggestions.length > 0 && "border-t border-[var(--surface-container)]")}>
-                                Add "{tagInput.trim()}"
+                                Add &quot;{tagInput.trim()}&quot;
                               </button>
                             )}
                           </div>

@@ -111,17 +111,23 @@ function runNormalizeProjectDetailTests(): void {
 }
 
 function runNormalizeProjectSummaryTests(): void {
+  // Backend rows for the summary list can carry a stray `projectState` field
+  // (overlap with the detail shape) — normalizeProjectSummary should still
+  // extract domainTags/selectedTeamId from it. Cast via a variable so TS
+  // doesn't flag `projectState` as an excess property of PromptProjectSummary.
+  const overridesWithProjectState = {
+    domainTags: undefined,
+    selectedTeamId: undefined,
+    projectState: {
+      _draftMeta: {
+        domainTags: ["SaaS", "GameDev", "Education", "Extra"],
+        selectedTeamId: "",
+      },
+    },
+  } as unknown as Partial<PromptProjectSummary>;
+
   const summary = normalizeProjectSummary(
-    makeSummary({
-      domainTags: undefined as never,
-      selectedTeamId: undefined as never,
-      projectState: {
-        _draftMeta: {
-          domainTags: ["SaaS", "GameDev", "Education", "Extra"],
-          selectedTeamId: "",
-        },
-      } as never,
-    }) as PromptProjectSummary,
+    makeSummary(overridesWithProjectState) as PromptProjectSummary,
   );
 
   assert.deepEqual(summary.domainTags, ["SaaS", "GameDev", "Education"]);

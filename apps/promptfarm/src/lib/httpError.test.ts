@@ -10,7 +10,7 @@ function runAxiosErrorTest(): void {
     {
       url: "https://example.com/db/projects/project-1/draft",
       method: "put",
-      headers: {},
+      headers: new axios.AxiosHeaders(),
     },
     undefined,
     {
@@ -20,7 +20,7 @@ function runAxiosErrorTest(): void {
       config: {
         url: "https://example.com/db/projects/project-1/draft",
         method: "put",
-        headers: {},
+        headers: new axios.AxiosHeaders(),
       },
       data: { error: "Project not found" },
     },

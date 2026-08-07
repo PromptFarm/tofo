@@ -49,20 +49,6 @@ macOS builds go through `pnpm --dir apps/desktop exec tauri build --bundles dmg`
 
 More detail, including why it's structured this way, in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Status
-
-| | |
-|---|---|
-| Graph canvas, roles, dependencies/conflicts | Real |
-| Simulation (dependency order, partial re-run, versioning) | Real |
-| Local persistence (SQLite, no cloud) | Real |
-| Claude CLI / API / Ollama providers | Real |
-| Agent opinions and the Final Report | Real — driven by actual model output, not placeholder text |
-
-Known issues being worked on — see [open issues](https://github.com/PromptFarm/tofo/issues):
-- Re-running after a chat clarification doesn't consistently instruct the model to revise its previous output rather than start fresh
-- The `idea-builder` and `plan-builder` pages are earlier prototypes and still use mock data — the main flow (`/projects` → graph → simulation) doesn't
-
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports and PRs welcome.

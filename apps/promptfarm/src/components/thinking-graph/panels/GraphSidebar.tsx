@@ -6,8 +6,19 @@ import { IntakeInlinePanel } from "./IntakeInlinePanel";
 import { DirectorNodePanel } from "./DirectorNodePanel";
 import { ArrowUp, Paperclip, Square, X } from "lucide-react";
 import type { SyntheticEdge, SyntheticNode } from "@/lib/planning/types";
-import type { LogEntry } from "../runtime/runtimeTypes";
-import type { DirectorOutput, SyntheticGraphPayload, SyntheticIntakeAnswer } from "@/lib/thinking-graph/server/types";
+import type {
+  ChatMessage,
+  ChatUpdatedOpinion,
+  LogEntry,
+  RuntimeNodeStatus,
+  SyntheticNodeProgress,
+} from "../runtime/runtimeTypes";
+import type {
+  DirectorOutput,
+  SyntheticGraphPayload,
+  SyntheticIntakeAnswer,
+  SyntheticOutputJson,
+} from "@/lib/thinking-graph/server/types";
 import {
   selectProjectFilesEntry,
   useProjectFilesStore,
@@ -222,12 +233,12 @@ export interface GraphSidebarProps {
   logScrollRef: React.RefObject<HTMLDivElement | null>;
   chatScrollRef: React.RefObject<HTMLDivElement | null>;
   chatContainerRef: React.RefObject<HTMLDivElement | null>;
-  runtimeByNodeId: Record<string, any>;
-  syntheticProgressByNodeId: Record<string, any>;
-  outputsBySyntheticId: Record<string, any>;
-  chatsByNodeId: Record<string, any>;
+  runtimeByNodeId: Record<string, RuntimeNodeStatus>;
+  syntheticProgressByNodeId: Record<string, SyntheticNodeProgress>;
+  outputsBySyntheticId: Record<string, SyntheticOutputJson | null>;
+  chatsByNodeId: Record<string, ChatMessage[]>;
   chatDraftByNodeId: Record<string, string>;
-  chatUpdatedOpinions: Record<string, any>;
+  chatUpdatedOpinions: Record<string, ChatUpdatedOpinion>;
   revisionEdges: SyntheticEdge[];
   selectedEdgeId: string | null;
   onSelectNode: (id: string | null) => void;
@@ -440,7 +451,7 @@ export function GraphSidebar({
                     This edge connects the <strong style={{ color: "var(--on-surface)" }}>Idea</strong> or <strong style={{ color: "var(--on-surface)" }}>Outcome</strong> node to the agent chain. It is visual scaffolding — it does not pass context during execution and its type has no effect on the simulation.
                   </p>
                   <p style={{ fontSize: 9, color: "var(--t3)", fontFamily: mono, lineHeight: 1.5, margin: 0 }}>
-                    The idea prompt is always injected directly into every agent's instruction, regardless of this edge.
+                    The idea prompt is always injected directly into every agent&apos;s instruction, regardless of this edge.
                   </p>
                 </div>
               </div>

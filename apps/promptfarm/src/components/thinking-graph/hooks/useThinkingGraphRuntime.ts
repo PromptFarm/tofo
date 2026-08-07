@@ -34,12 +34,23 @@ type UseThinkingGraphRuntimeInput = {
   onRunStatsChange: (stats: RunStats | null) => void
 }
 
-type RunExecutionResult = {
+export type RunExecutionResult = {
   runId: string | null
   payload: SyntheticGraphPayload
   runtimeSnapshot: Record<string, RuntimeNodeStatus>
   stats: RunStats
   agentsRun: number
+}
+
+export type ExecuteRunInput = {
+  sessionId: string
+  projectId?: string | null
+  ideaPrompt: string
+  syntheticNodeIds: string[]
+  rerunMode?: "full" | "single_node" | "from_node_downstream"
+  targetSyntheticId?: string
+  dirtySyntheticIds?: string[]
+  edges?: SyntheticEdge[]
 }
 
 type OutputTokenUsage = {

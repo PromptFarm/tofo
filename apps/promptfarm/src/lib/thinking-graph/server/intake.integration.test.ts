@@ -23,7 +23,7 @@ import {
   thinkingGraphRepository,
 } from "./repository"
 import type { ModelGenerateInput, ModelGenerateResult, ModelProvider } from "./modelProvider"
-import type { SyntheticOutputJson } from "./types"
+import type { SyntheticOutputJson, SyntheticReport } from "./types"
 import {
   buildIntakeQuestions,
   buildIntakeContextBlock,
@@ -145,12 +145,12 @@ function fakeIntakeLlmOutputTooMany(): string {
 function makeAgentOutput(
   syntheticId: string,
   syntheticName: string,
-  clarificationRequests: SyntheticOutputJson["operational"] extends infer O
+  clarificationRequests: SyntheticReport["operational"] extends infer O
     ? O extends { clarificationRequests: infer C }
       ? C
       : never
     : never,
-): SyntheticOutputJson {
+): SyntheticReport {
   return {
     syntheticId,
     syntheticName,

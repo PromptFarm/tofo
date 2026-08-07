@@ -334,7 +334,7 @@ export function ConflictMapSection({
                   lineHeight: 1.5,
                 }}
               >
-                Each connection below changes how agents receive each other's output during the run.
+                Each connection below changes how agents receive each other&apos;s output during the run.
               </p>
               {semanticEdges.map((edge) => (
                 <EdgeRelationCard

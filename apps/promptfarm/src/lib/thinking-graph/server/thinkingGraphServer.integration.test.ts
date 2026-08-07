@@ -25,7 +25,15 @@ import {
   getThinkingGraphRuntimeConfig,
 } from "./config"
 import { validateSyntheticOutput } from "./llm-core/shadowValidator"
-import type { SyntheticOutputJson, SyntheticPreparedDecision } from "./types"
+import type { SyntheticOutputJson, SyntheticPreparedDecision, SyntheticReport } from "./types"
+import { isAdvisorReport } from "./types"
+
+function syntheticOutput(
+  output: SyntheticOutputJson | null | undefined,
+): SyntheticReport | null {
+  if (!output || isAdvisorReport(output)) return null
+  return output
+}
 
 function createTestSyntheticReport(input: {
   syntheticId: string
@@ -42,8 +50,8 @@ function createTestSyntheticReport(input: {
   complexity?: "low" | "medium" | "high"  // kept as "complexity" for test helper convenience — mapped to complexityLabel below
   handoff?: string | null
   upstreamContext?: string[]
-  directedHandoffs?: SyntheticOutputJson["directedHandoffs"]
-  operational?: SyntheticOutputJson["operational"]
+  directedHandoffs?: SyntheticReport["directedHandoffs"]
+  operational?: SyntheticReport["operational"]
 }) {
   return {
     syntheticId: input.syntheticId,
@@ -1217,15 +1225,15 @@ async function runThinkingGraphOperationalCanonicalFlowTest(): Promise<void> {
   const result = await orchestratorUnderTest.runChain({ session })
 
   assert.equal(
-    result.outputsBySyntheticId["syn-game-designer"]?.operational?.nextSteps[0],
+    syntheticOutput(result.outputsBySyntheticId["syn-game-designer"])?.operational?.nextSteps[0],
     "Draft the first playable combat loop brief.",
   )
   assert.equal(
-    result.outputsBySyntheticId["syn-ux-designer"]?.operational?.artifactsReady[0],
+    syntheticOutput(result.outputsBySyntheticId["syn-ux-designer"])?.operational?.artifactsReady[0],
     "hud-readability-checklist",
   )
   assert.equal(
-    result.outputsBySyntheticId["syn-game-programmer"]?.recommendation,
+    syntheticOutput(result.outputsBySyntheticId["syn-game-programmer"])?.recommendation,
     "Write the implementation brief for gameplay and HUD boundaries.",
   )
 
@@ -1564,19 +1572,19 @@ async function runThinkingGraphServerIntegrationTest(): Promise<void> {
   )
   assert.deepEqual(payload.outputsBySyntheticId["syn-game-programmer"], null)
   assert.equal(
-    payload.outputsBySyntheticId["syn-game-designer"]?.summary,
+    syntheticOutput(payload.outputsBySyntheticId["syn-game-designer"])?.summary,
     "Design should center on short co-op runs.",
   )
   assert.equal(
-    payload.outputsBySyntheticId["syn-game-designer"]?.recommendation,
+    syntheticOutput(payload.outputsBySyntheticId["syn-game-designer"])?.recommendation,
     "Pass readability requirements into UX before engineering commits to combat HUD structure.",
   )
   assert.equal(
-    payload.outputsBySyntheticId["syn-ux-designer"]?.details,
+    syntheticOutput(payload.outputsBySyntheticId["syn-ux-designer"])?.details,
     "Co-op readability fails first when status effects and player roles are visually ambiguous.",
   )
   assert.equal(
-    payload.outputsBySyntheticId["syn-ux-designer"]?.concernLevels.complexityLabel,
+    syntheticOutput(payload.outputsBySyntheticId["syn-ux-designer"])?.concernLevels.complexityLabel,
     "medium",
   )
 }
@@ -1683,15 +1691,15 @@ async function runThinkingGraphAdkIntegrationTest(): Promise<void> {
 
     assert.equal(result.transcript.length, 3)
     assert.equal(
-      result.outputsBySyntheticId["syn-game-designer"]?.summary,
+      syntheticOutput(result.outputsBySyntheticId["syn-game-designer"])?.summary,
       "Focus the loop around short co-op combat runs.",
     )
     assert.equal(
-      result.outputsBySyntheticId["syn-ux-designer"]?.recommendation,
+      syntheticOutput(result.outputsBySyntheticId["syn-ux-designer"])?.recommendation,
       "Programmer should keep HUD widgets modular and data-driven.",
     )
     assert.equal(
-      result.outputsBySyntheticId["syn-game-programmer"]?.details,
+      syntheticOutput(result.outputsBySyntheticId["syn-game-programmer"])?.details,
       "A modular gameplay/UI boundary reduces iteration cost as combat rules change.",
     )
   })
@@ -1771,19 +1779,19 @@ async function runThinkingGraphAdkFallbackParsingTest(): Promise<void> {
     const result = await orchestratorUnderTest.runChain({ session })
 
     assert.equal(
-      result.outputsBySyntheticId["syn-game-designer"]?.summary,
+      syntheticOutput(result.outputsBySyntheticId["syn-game-designer"])?.summary,
       "Define a compact core loop before scaling scope.",
     )
     assert.equal(
-      result.outputsBySyntheticId["syn-ux-designer"]?.recommendation,
+      syntheticOutput(result.outputsBySyntheticId["syn-ux-designer"])?.recommendation,
       "Programmer should keep HUD wiring modular.",
     )
     assert.equal(
-      result.outputsBySyntheticId["syn-game-programmer"]?.summary,
+      syntheticOutput(result.outputsBySyntheticId["syn-game-programmer"])?.summary,
       "Build gameplay systems behind clear interfaces and data-driven UI state.",
     )
     assert.equal(
-      result.outputsBySyntheticId["syn-game-programmer"]?.handoff,
+      syntheticOutput(result.outputsBySyntheticId["syn-game-programmer"])?.handoff,
       null,
     )
   })
@@ -1891,16 +1899,16 @@ async function runThinkingGraphOperationalRetryTest(): Promise<void> {
 
     assert.equal(providerUnderTest.recordedInputs.length, 3) // 2 agent calls (fail + retry) + 1 aggregator call
     assert.equal(
-      result.outputsBySyntheticId["syn-game-designer"]?.operational?.nextSteps[0],
+      syntheticOutput(result.outputsBySyntheticId["syn-game-designer"])?.operational?.nextSteps[0],
       "Draft the first combat encounter brief.",
     )
     assert.equal(
-      result.outputsBySyntheticId["syn-game-designer"]?.recommendation,
+      syntheticOutput(result.outputsBySyntheticId["syn-game-designer"])?.recommendation,
       "Draft the first combat encounter brief.",
     )
     assert.equal(
       (
-        result.outputsBySyntheticId["syn-game-designer"]?.raw as {
+        syntheticOutput(result.outputsBySyntheticId["syn-game-designer"])?.raw as {
           quality?: { hasOperational?: boolean }
         } | null
       )?.quality?.hasOperational,
@@ -2002,12 +2010,12 @@ async function runThinkingGraphLegacyOperationalRetryModeTest(): Promise<void> {
 
     assert.equal(providerUnderTest.recordedInputs.length, 3) // 2 agent calls (fail + retry) + 1 aggregator call
     assert.equal(
-      result.outputsBySyntheticId["syn-game-designer"]?.operational?.nextSteps[0],
+      syntheticOutput(result.outputsBySyntheticId["syn-game-designer"])?.operational?.nextSteps[0],
       "Draft the combat slice brief.",
     )
     assert.equal(
       (
-        result.outputsBySyntheticId["syn-game-designer"]?.raw as {
+        syntheticOutput(result.outputsBySyntheticId["syn-game-designer"])?.raw as {
           quality?: {
             hasOperational?: boolean
             usedLegacyCompatibilityFallback?: boolean
@@ -3089,7 +3097,7 @@ async function runDecisionPersistenceAcrossIterationsTest(): Promise<void> {
     assert.match(gpPrompt2, /PERMANENTLY RESOLVED DECISIONS/)
 
     // ── Assert: engine_choice stripped from GD output ────────────────────────
-    const gdOut2 = iter2Result.outputsBySyntheticId["syn-game-designer"]
+    const gdOut2 = syntheticOutput(iter2Result.outputsBySyntheticId["syn-game-designer"])
     assert.ok(gdOut2, "GD output must exist")
     const gdClarifications = gdOut2?.operational?.clarificationRequests ?? []
     assert.equal(
@@ -3105,7 +3113,7 @@ async function runDecisionPersistenceAcrossIterationsTest(): Promise<void> {
     )
 
     // ── Assert: engine_choice stripped from UX output ────────────────────────
-    const uxOut2 = iter2Result.outputsBySyntheticId["syn-ux-designer"]
+    const uxOut2 = syntheticOutput(iter2Result.outputsBySyntheticId["syn-ux-designer"])
     assert.ok(uxOut2, "UX output must exist")
     const uxClarifications = uxOut2?.operational?.clarificationRequests ?? []
     assert.equal(
@@ -3115,7 +3123,7 @@ async function runDecisionPersistenceAcrossIterationsTest(): Promise<void> {
     )
 
     // ── Assert: GP (the original target) has no engine decision leftovers ───
-    const gpOut2 = iter2Result.outputsBySyntheticId["syn-game-programmer"]
+    const gpOut2 = syntheticOutput(iter2Result.outputsBySyntheticId["syn-game-programmer"])
     assert.ok(gpOut2, "GP output must exist")
     assert.equal(
       (gpOut2?.operational?.clarificationRequests ?? []).some((cr) => cr.id === "engine_choice"),

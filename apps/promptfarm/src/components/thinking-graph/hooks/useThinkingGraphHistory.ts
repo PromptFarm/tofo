@@ -3,7 +3,7 @@ import { useCallback, useMemo } from "react"
 import { useThinkingGraphVersionStore } from "../state/useThinkingGraphVersionStore"
 import type { SimulationRun } from "../runtime/runtimeTypes"
 
-type BuildRestoreStateInput = {
+export type BuildRestoreStateInput = {
   run: SimulationRun
   baseSyntheticIds: string[]
 }

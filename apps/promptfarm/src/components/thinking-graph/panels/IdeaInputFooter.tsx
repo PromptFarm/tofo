@@ -66,6 +66,7 @@ import type {
 import type {
   SyntheticIntakeQuestion,
   SyntheticIntakeAnswer,
+  SyntheticOutputJson,
 } from "@/lib/thinking-graph/server/types";
 
 export interface IdeaInputFooterProps {
@@ -84,7 +85,7 @@ export interface IdeaInputFooterProps {
   completedAgentCount: number;
   syntheticNodeIds: string[];
   simulationHistoryLength: number;
-  outputsBySyntheticId: Record<string, any>;
+  outputsBySyntheticId: Record<string, SyntheticOutputJson | null>;
   pendingAppliedDecisions: AppliedDecisionSelection[];
   pendingStructuredClarifications: AppliedStructuredClarification[];
   draftNextIteration: () => void;
