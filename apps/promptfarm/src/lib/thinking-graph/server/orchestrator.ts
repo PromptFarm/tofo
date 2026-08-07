@@ -3409,11 +3409,20 @@ export class AdkSyntheticOrchestrator implements SyntheticOrchestrator {
     // natural concurrency gate — it queues requests internally. Cloud providers
     // handle rate limits at the HTTP level (429 responses). No artificial
     // Node.js semaphore is needed here.
+    //
+    // This used to stagger each agent's start by `agentIndex * 5000ms`, on the
+    // assumption that earlier-indexed agents would reliably finish first. That
+    // assumption was false — with 3+ agents it routinely raced the
+    // upstream-readiness gate below: an agent that hadn't been reached yet
+    // (still waiting out its own artificial delay) looked identical to one
+    // that would never complete, so the gate deferred it with a placeholder
+    // output instead of a real one. Without the stagger, every agent reaches
+    // the readiness check in the same tick (`Array.map` invokes all the async
+    // callbacks synchronously; JS doesn't context-switch between them until
+    // the first `await`), so `completedThisRun` is reliably still empty for
+    // everyone at that point — no false "some peers done, some not" reads.
     await Promise.all(
-      regularSynthetics.map(async (synthetic, agentIndex) => {
-        if (agentIndex > 0) {
-          await new Promise<void>((resolve) => setTimeout(resolve, agentIndex * 5000));
-        }
+      regularSynthetics.map(async (synthetic) => {
         await input.onProgress?.({
           type: "agent_started",
           sessionId: input.session.id,
