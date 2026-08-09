@@ -1,3 +1,4 @@
+import crossSpawn from "cross-spawn"
 import type {
   SyntheticBackendDescriptor,
   SyntheticOutputJson,
@@ -1013,8 +1014,6 @@ export class ClaudeCliModelProvider implements ModelProvider {
   }
 
   async generate(input: ModelGenerateInput): Promise<ModelGenerateResult> {
-    const { spawn } = await import("node:child_process")
-
     const { systemPrompt, prompt } = this.buildPrompt(input.messages)
     const args = buildClaudeCliArgs({
       model: this._model,
@@ -1027,8 +1026,14 @@ export class ClaudeCliModelProvider implements ModelProvider {
     // three streams for it, and TS's ExecFileOptions doesn't even declare
     // the field). `spawn` does, so use that instead — needed both to write
     // the prompt below and (previously) to avoid the 3s stdin-wait bug.
+    // cross-spawn (not node:child_process directly) because a global npm
+    // install of the Claude CLI on Windows is a `.cmd` shim — plain
+    // `spawn()` throws ENOENT for those unless `shell: true` is set, and
+    // that's not safe here since `--system-prompt` below carries
+    // user-authored idea text into argv. cross-spawn handles the Windows
+    // .cmd/.bat resolution correctly without a shell.
     const stdout = await new Promise<string>((resolve, reject) => {
-      const child = spawn("claude", args, {
+      const child = crossSpawn("claude", args, {
         stdio: ["pipe", "pipe", "pipe"],
         ...(input.signal ? { signal: input.signal } : {}),
       })
@@ -1092,7 +1097,6 @@ export class ClaudeCliModelProvider implements ModelProvider {
       return result
     }
 
-    const { spawn } = await import("node:child_process")
     const { systemPrompt, prompt } = this.buildPrompt(input.messages)
     const args = buildClaudeCliArgs({
       model: this._model,
@@ -1100,7 +1104,8 @@ export class ClaudeCliModelProvider implements ModelProvider {
       outputFormat: "stream-json",
     })
 
-    const child = spawn("claude", args, {
+    // See generate() above for why cross-spawn instead of node:child_process.
+    const child = crossSpawn("claude", args, {
       stdio: ["pipe", "pipe", "pipe"],
       ...(input.signal ? { signal: input.signal } : {}),
     })
