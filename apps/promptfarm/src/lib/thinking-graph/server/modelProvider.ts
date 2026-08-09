@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process"
 import crossSpawn from "cross-spawn"
 import type {
   SyntheticBackendDescriptor,
@@ -12,6 +13,33 @@ import { profLog } from "./profiling"
 
 function ollamaFetchInit(signal?: AbortSignal): Record<string, unknown> {
   return signal ? { signal } : {}
+}
+
+// GUI apps launched from Finder/Dock (like the Tauri desktop shell that runs
+// this server) don't inherit the PATH set up by the user's shell profile
+// (.zshrc/.bash_profile) — exactly where npm/nvm installs put the `claude`
+// CLI. A bare `spawn("claude", ...)` reliably fails with ENOENT in that
+// context even though `claude` works fine from any terminal. Same fix
+// already applied on the Rust side for `node` (see lib.rs's
+// resolve_node_path) — resolving through a login shell picks up the same
+// PATH a terminal would have. Windows doesn't have this problem (processes
+// inherit the full PATH regardless of launch method there), and cross-spawn
+// already handles that platform's own `.cmd`/`.bat` shim quirk separately.
+let cachedClaudeCliPath: string | null | undefined
+function resolveClaudeCliPath(): string {
+  if (cachedClaudeCliPath !== undefined) return cachedClaudeCliPath ?? "claude"
+  if (process.platform === "win32") {
+    cachedClaudeCliPath = null
+    return "claude"
+  }
+  try {
+    const shell = process.env.SHELL ?? "/bin/zsh"
+    const resolved = execFileSync(shell, ["-lc", "command -v claude"], { encoding: "utf8" }).trim()
+    cachedClaudeCliPath = resolved || null
+  } catch {
+    cachedClaudeCliPath = null
+  }
+  return cachedClaudeCliPath ?? "claude"
 }
 
 export type ModelProviderMessage = {
@@ -1033,7 +1061,7 @@ export class ClaudeCliModelProvider implements ModelProvider {
     // user-authored idea text into argv. cross-spawn handles the Windows
     // .cmd/.bat resolution correctly without a shell.
     const stdout = await new Promise<string>((resolve, reject) => {
-      const child = crossSpawn("claude", args, {
+      const child = crossSpawn(resolveClaudeCliPath(), args, {
         stdio: ["pipe", "pipe", "pipe"],
         ...(input.signal ? { signal: input.signal } : {}),
       })
@@ -1105,7 +1133,7 @@ export class ClaudeCliModelProvider implements ModelProvider {
     })
 
     // See generate() above for why cross-spawn instead of node:child_process.
-    const child = crossSpawn("claude", args, {
+    const child = crossSpawn(resolveClaudeCliPath(), args, {
       stdio: ["pipe", "pipe", "pipe"],
       ...(input.signal ? { signal: input.signal } : {}),
     })
