@@ -30,6 +30,16 @@ Or grab it manually from [the latest release](https://github.com/PromptFarm/tofo
 
 On first launch, TOFO asks which model to use: a local Ollama model, an Anthropic API key, or your `claude` CLI subscription. Nothing is sent anywhere until you choose.
 
+### First-launch warning (unsigned build)
+
+TOFO isn't code-signed or notarized — that requires a paid Apple/Microsoft developer account, which this project doesn't have. Your OS will warn you the first time you run it. This is expected; it's not a sign anything is wrong with the download.
+
+- **Windows:** SmartScreen shows "Windows protected your PC." Click **More info**, then **Run anyway**.
+- **macOS:** Gatekeeper says the app "is damaged and can't be opened" if you downloaded it via a browser (this is Gatekeeper's message for "not notarized," not an actual corrupt file). The `install.sh` one-liner above avoids this. If you downloaded the `.dmg` manually instead, run this once after moving TOFO to Applications:
+  ```bash
+  xattr -cr /Applications/tofo-desktop.app
+  ```
+
 ## Building from source
 
 Requirements: [pnpm](https://pnpm.io) 9, [Rust](https://rustup.rs), Node.js 24.
