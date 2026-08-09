@@ -42,15 +42,29 @@ TOFO isn't code-signed or notarized — that requires a paid Apple/Microsoft dev
 
 ## Building from source
 
-Requirements: [pnpm](https://pnpm.io) 9, [Rust](https://rustup.rs), Node.js 24.
+Requirements: [pnpm](https://pnpm.io) 9, [Rust](https://rustup.rs), Node.js 24, and each OS's native webview toolchain (WebView2 on Windows — usually already installed; Xcode Command Line Tools on macOS; `libwebkit2gtk-4.1-dev` and friends on Linux, see [.github/workflows/release.yml](.github/workflows/release.yml) for the exact package list).
 
 ```bash
 pnpm install
-pnpm --dir apps/desktop tauri dev      # run in dev mode
-bash apps/desktop/scripts/package-portable-zip.sh   # build a portable Windows zip
+pnpm --dir apps/desktop tauri dev      # run in dev mode, live-reloading
 ```
 
-macOS builds go through `pnpm --dir apps/desktop exec tauri build --bundles dmg`, Linux through `--bundles appimage` — see [.github/workflows/release.yml](.github/workflows/release.yml) for the exact CI steps.
+A build you compile yourself runs the exact same code as the release binaries, just without hitting the [unsigned-build OS warning](#first-launch-warning-unsigned-build) — your OS generally trusts something it watched get compiled locally more than something downloaded from the internet.
+
+Production builds, one command per platform:
+
+```bash
+# Windows — portable .zip
+bash apps/desktop/scripts/package-portable-zip.sh
+
+# macOS — .dmg
+pnpm --dir apps/desktop exec tauri build --bundles dmg
+
+# Linux — .AppImage
+pnpm --dir apps/desktop exec tauri build --bundles appimage
+```
+
+Windows goes through its own script instead of plain `tauri build` because of a Windows-specific `MAX_PATH` issue with NSIS bundling — see the comments in `package-portable-zip.sh` for why. macOS/Linux output lands under `apps/desktop/src-tauri/target/release/bundle/`.
 
 ## How it's built
 
