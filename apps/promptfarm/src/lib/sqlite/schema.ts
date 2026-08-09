@@ -292,21 +292,10 @@ CREATE TABLE IF NOT EXISTS TeamPreset (
 );
 CREATE INDEX IF NOT EXISTS TeamPreset_userId_createdAt_idx ON TeamPreset(userId, createdAt);
 
-CREATE TABLE IF NOT EXISTS CustomPersona (
-  id TEXT PRIMARY KEY,
-  userId TEXT NOT NULL REFERENCES User(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  domain TEXT NOT NULL,
-  skillDescription TEXT NOT NULL,
-  createdAt TEXT NOT NULL,
-  updatedAt TEXT NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS TeamPresetMember (
   id TEXT PRIMARY KEY,
   teamId TEXT NOT NULL REFERENCES TeamPreset(id) ON DELETE CASCADE,
   personaId TEXT,
-  customPersonaId TEXT REFERENCES CustomPersona(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
   domain TEXT NOT NULL,
   skillDescription TEXT NOT NULL

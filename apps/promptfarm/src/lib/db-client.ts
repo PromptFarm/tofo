@@ -1046,7 +1046,6 @@ export async function addTeamMember(
   teamId: string,
   input: {
     personaId?: string | null;
-    customPersonaId?: string | null;
     name: string;
     domain: string;
     skillDescription: string;
@@ -1055,8 +1054,8 @@ export async function addTeamMember(
   const db = getDb();
   const id = newId();
   db.prepare(
-    `INSERT INTO TeamPresetMember (id, teamId, personaId, customPersonaId, name, domain, skillDescription) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).run(id, teamId, input.personaId ?? null, input.customPersonaId ?? null, input.name, input.domain, input.skillDescription);
+    `INSERT INTO TeamPresetMember (id, teamId, personaId, name, domain, skillDescription) VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(id, teamId, input.personaId ?? null, input.name, input.domain, input.skillDescription);
   return toPlain(
     db.prepare(`SELECT id, personaId, name, domain, skillDescription FROM TeamPresetMember WHERE id = ?`).get(id) as TeamPresetMemberSummary,
   );
@@ -1070,19 +1069,18 @@ export async function updateTeamMember(
   userId: string,
   teamId: string,
   memberId: string,
-  input: { name?: string; domain?: string; skillDescription?: string; customPersonaId?: string | null },
+  input: { name?: string; domain?: string; skillDescription?: string },
 ): Promise<TeamPresetMemberSummary> {
   const db = getDb();
   const current = db
     .prepare(`SELECT * FROM TeamPresetMember WHERE id = ?`)
-    .get(memberId) as { name: string; domain: string; skillDescription: string; customPersonaId: string | null };
+    .get(memberId) as { name: string; domain: string; skillDescription: string };
   db.prepare(
-    `UPDATE TeamPresetMember SET name = ?, domain = ?, skillDescription = ?, customPersonaId = ? WHERE id = ?`,
+    `UPDATE TeamPresetMember SET name = ?, domain = ?, skillDescription = ? WHERE id = ?`,
   ).run(
     input.name ?? current.name,
     input.domain ?? current.domain,
     input.skillDescription ?? current.skillDescription,
-    input.customPersonaId === undefined ? current.customPersonaId : input.customPersonaId,
     memberId,
   );
   return toPlain(
