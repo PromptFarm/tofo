@@ -44,12 +44,17 @@ TOFO isn't code-signed or notarized — that requires a paid Apple/Microsoft dev
 
 Requirements: [pnpm](https://pnpm.io) 9, [Rust](https://rustup.rs), Node.js 24, and each OS's native webview toolchain (WebView2 on Windows — usually already installed; Xcode Command Line Tools on macOS; `libwebkit2gtk-4.1-dev` and friends on Linux, see [.github/workflows/release.yml](.github/workflows/release.yml) for the exact package list).
 
+`main` is where active development happens — it's required to pass CI (typecheck, lint, build, full test suite) before anything merges, but it's a moving target and isn't necessarily what any given release was built from. **To reproduce a specific release exactly, build from its tag** (releases are tagged `desktop-vX.Y.Z`, e.g. `desktop-v0.1.0`), not from `main`:
+
 ```bash
+git clone https://github.com/PromptFarm/tofo.git
+cd tofo
+git checkout desktop-v0.1.0   # or: git tag --list "desktop-v*"  to see all releases
 pnpm install
 pnpm --dir apps/desktop tauri dev      # run in dev mode, live-reloading
 ```
 
-A build you compile yourself runs the exact same code as the release binaries, just without hitting the [unsigned-build OS warning](#first-launch-warning-unsigned-build) — your OS generally trusts something it watched get compiled locally more than something downloaded from the internet.
+A build from a release's exact tag runs the exact same code as that release's binaries, just without hitting the [unsigned-build OS warning](#first-launch-warning-unsigned-build) — your OS generally trusts something it watched get compiled locally more than something downloaded from the internet.
 
 Production builds, one command per platform:
 
