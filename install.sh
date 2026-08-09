@@ -43,9 +43,16 @@ if [ "$OS" = "Darwin" ]; then
   fi
 
   rm -rf "/Applications/$(basename "$APP_PATH")"
-  cp -R "$APP_PATH" /Applications/
+  cp -R "$APP_PATH" "/Applications/"
   hdiutil detach "$MOUNT_DIR" -quiet
   rm -f "$TMP_DMG"
+
+  # TOFO isn't notarized by Apple (that requires a paid developer account) —
+  # a build downloaded via a browser gets a com.apple.quarantine flag that
+  # makes Gatekeeper refuse to open it at all ("app is damaged"). curl
+  # doesn't set that flag, but strip it defensively anyway in case macOS
+  # applies it some other way (e.g. via Finder's own copy).
+  xattr -cr "/Applications/$(basename "$APP_PATH")" 2>/dev/null || true
 
   echo "TOFO installed to /Applications. Launch it from Spotlight or Applications."
 else
