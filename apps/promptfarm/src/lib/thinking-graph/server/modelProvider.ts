@@ -1,4 +1,7 @@
 import { execFileSync } from "node:child_process"
+import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import crossSpawn from "cross-spawn"
 import type {
   SyntheticBackendDescriptor,
@@ -960,9 +963,18 @@ type ClaudeCliStreamEvent = {
   usage?: { input_tokens?: number; output_tokens?: number }
 }
 
+// Written to a scratch dir instead of passed inline via --system-prompt —
+// see buildClaudeCliArgs for why.
+async function writeTempSystemPromptFile(systemPrompt: string): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), "tofo-claude-cli-"))
+  const filePath = join(dir, "system-prompt.txt")
+  await writeFile(filePath, systemPrompt, "utf8")
+  return filePath
+}
+
 function buildClaudeCliArgs(input: {
   model: string
-  systemPrompt?: string
+  systemPromptFilePath?: string
   responseSchema?: Record<string, unknown>
   outputFormat: "json" | "stream-json"
 }): string[] {
@@ -972,8 +984,8 @@ function buildClaudeCliArgs(input: {
     args.push("--verbose", "--include-partial-messages")
   }
   args.push("--model", input.model)
-  if (input.systemPrompt) {
-    args.push("--system-prompt", input.systemPrompt)
+  if (input.systemPromptFilePath) {
+    args.push("--system-prompt-file", input.systemPromptFilePath)
   }
   if (input.responseSchema) {
     args.push("--json-schema", JSON.stringify(input.responseSchema))
@@ -982,7 +994,11 @@ function buildClaudeCliArgs(input: {
   // of appended here as a positional arg — Windows' CreateProcess caps the
   // whole command line at ~32K chars, and a synthetic's accumulated context
   // routinely blows past that, failing with `spawn ENAMETOOLONG`. stdin has
-  // no such limit.
+  // no such limit. --system-prompt-file (a temp file, see
+  // writeTempSystemPromptFile) instead of --system-prompt for the same
+  // reason: the system prompt grows with accumulated chat/upstream context
+  // across re-runs and can independently blow the same limit even with the
+  // main prompt already moved off argv.
   args.push("--tools=")
   return args
 }
@@ -1001,6 +1017,20 @@ function describeClaudeCliFailure(stdoutBuf: string, stderrBuf: string, code: nu
     }
   }
   return stderrBuf || `exited with code ${code}`
+}
+
+// ENOENT here means the `claude` binary genuinely couldn't be found (either
+// it isn't installed, or resolveClaudeCliPath()'s login-shell lookup itself
+// came up empty) — the raw Node error ("spawn claude ENOENT") or the
+// synthetic close-code path some environments take instead (an errno-shaped
+// exit code with no stdout/stderr) both read as an opaque crash to a user
+// who has no reason to know what ENOENT means. Give them something
+// actionable instead.
+const CLAUDE_CLI_NOT_FOUND_MESSAGE =
+  "Claude CLI not found. Install it from https://docs.claude.com/en/docs/claude-code, or switch to a different provider in Settings."
+
+function isClaudeCliNotFoundError(err: NodeJS.ErrnoException | undefined): boolean {
+  return err?.code === "ENOENT"
 }
 
 function extractClaudeCliModel(envelope: ClaudeCliEnvelope, fallback: string): string {
@@ -1043,57 +1073,72 @@ export class ClaudeCliModelProvider implements ModelProvider {
 
   async generate(input: ModelGenerateInput): Promise<ModelGenerateResult> {
     const { systemPrompt, prompt } = this.buildPrompt(input.messages)
-    const args = buildClaudeCliArgs({
-      model: this._model,
-      systemPrompt,
-      responseSchema: input.responseSchema,
-      outputFormat: "json",
-    })
+    const systemPromptFilePath = systemPrompt ? await writeTempSystemPromptFile(systemPrompt) : undefined
+    try {
+      const args = buildClaudeCliArgs({
+        model: this._model,
+        systemPromptFilePath,
+        responseSchema: input.responseSchema,
+        outputFormat: "json",
+      })
 
-    // `execFile` doesn't support overriding stdio (Node always pipes all
-    // three streams for it, and TS's ExecFileOptions doesn't even declare
-    // the field). `spawn` does, so use that instead — needed both to write
-    // the prompt below and (previously) to avoid the 3s stdin-wait bug.
-    // cross-spawn (not node:child_process directly) because a global npm
-    // install of the Claude CLI on Windows is a `.cmd` shim — plain
-    // `spawn()` throws ENOENT for those unless `shell: true` is set, and
-    // that's not safe here since `--system-prompt` below carries
-    // user-authored idea text into argv. cross-spawn handles the Windows
-    // .cmd/.bat resolution correctly without a shell.
-    const stdout = await new Promise<string>((resolve, reject) => {
-      const child = crossSpawn(resolveClaudeCliPath(), args, {
-        stdio: ["pipe", "pipe", "pipe"],
-        ...(input.signal ? { signal: input.signal } : {}),
+      // `execFile` doesn't support overriding stdio (Node always pipes all
+      // three streams for it, and TS's ExecFileOptions doesn't even declare
+      // the field). `spawn` does, so use that instead — needed both to write
+      // the prompt below and (previously) to avoid the 3s stdin-wait bug.
+      // cross-spawn (not node:child_process directly) because a global npm
+      // install of the Claude CLI on Windows is a `.cmd` shim — plain
+      // `spawn()` throws ENOENT for those unless `shell: true` is set, and
+      // shell:true isn't safe here since args carry user-authored idea
+      // text. cross-spawn handles the Windows .cmd/.bat resolution
+      // correctly without a shell.
+      const stdout = await new Promise<string>((resolve, reject) => {
+        const child = crossSpawn(resolveClaudeCliPath(), args, {
+          stdio: ["pipe", "pipe", "pipe"],
+          ...(input.signal ? { signal: input.signal } : {}),
+        })
+        // The prompt goes over stdin, not argv (see buildClaudeCliArgs) — a
+        // synthetic's accumulated context can be large enough to blow past
+        // Windows' ~32K command-line limit (`spawn ENAMETOOLONG`). Ending
+        // stdin immediately after writing also keeps the CLI from waiting on
+        // it (same effect as the old `stdio: "ignore"`, since we now must
+        // keep stdin as a pipe to write to it at all).
+        child.stdin!.end(prompt)
+        let stdoutBuf = ""
+        let stderrBuf = ""
+        child.stdout!.setEncoding("utf8")
+        child.stderr!.setEncoding("utf8")
+        child.stdout!.on("data", (chunk: string) => {
+          stdoutBuf += chunk
+        })
+        child.stderr!.on("data", (chunk: string) => {
+          stderrBuf += chunk
+        })
+        child.on("error", (err: NodeJS.ErrnoException) => {
+          reject(new Error(isClaudeCliNotFoundError(err) ? CLAUDE_CLI_NOT_FOUND_MESSAGE : `claude CLI failed: ${err.message}`))
+        })
+        child.on("close", (code) => {
+          if (code === 0) {
+            resolve(stdoutBuf)
+          } else if (!stdoutBuf && !stderrBuf) {
+            // Some environments (seen on macOS) surface a spawn failure only
+            // through "close" with an errno-shaped code and no output at all,
+            // never firing "error" — this is the same "binary not found" case
+            // as above, just taking the other path.
+            reject(new Error(CLAUDE_CLI_NOT_FOUND_MESSAGE))
+          } else {
+            reject(new Error(`claude CLI failed: ${describeClaudeCliFailure(stdoutBuf, stderrBuf, code)}`))
+          }
+        })
       })
-      // The prompt goes over stdin, not argv (see buildClaudeCliArgs) — a
-      // synthetic's accumulated context can be large enough to blow past
-      // Windows' ~32K command-line limit (`spawn ENAMETOOLONG`). Ending
-      // stdin immediately after writing also keeps the CLI from waiting on
-      // it (same effect as the old `stdio: "ignore"`, since we now must
-      // keep stdin as a pipe to write to it at all).
-      child.stdin!.end(prompt)
-      let stdoutBuf = ""
-      let stderrBuf = ""
-      child.stdout!.setEncoding("utf8")
-      child.stderr!.setEncoding("utf8")
-      child.stdout!.on("data", (chunk: string) => {
-        stdoutBuf += chunk
-      })
-      child.stderr!.on("data", (chunk: string) => {
-        stderrBuf += chunk
-      })
-      child.on("error", (err) => {
-        reject(new Error(`claude CLI failed: ${err.message}`))
-      })
-      child.on("close", (code) => {
-        if (code === 0) {
-          resolve(stdoutBuf)
-        } else {
-          reject(new Error(`claude CLI failed: ${describeClaudeCliFailure(stdoutBuf, stderrBuf, code)}`))
-        }
-      })
-    })
 
+      return this.parseGenerateResult(stdout, input.responseSchema)
+    } finally {
+      if (systemPromptFilePath) await rm(join(systemPromptFilePath, ".."), { recursive: true, force: true })
+    }
+  }
+
+  private parseGenerateResult(stdout: string, responseSchema: Record<string, unknown> | undefined): ModelGenerateResult {
     let envelope: ClaudeCliEnvelope
     try {
       envelope = JSON.parse(stdout.trim()) as ClaudeCliEnvelope
@@ -1101,7 +1146,7 @@ export class ClaudeCliModelProvider implements ModelProvider {
       throw new Error(`claude CLI output did not parse as JSON: ${stdout.slice(0, 500)}`)
     }
 
-    const text = extractClaudeCliText(envelope, Boolean(input.responseSchema))
+    const text = extractClaudeCliText(envelope, Boolean(responseSchema))
     const model = extractClaudeCliModel(envelope, this._model)
     const promptTokens = envelope.usage?.input_tokens ?? null
     const completionTokens = envelope.usage?.output_tokens ?? null
@@ -1126,9 +1171,22 @@ export class ClaudeCliModelProvider implements ModelProvider {
     }
 
     const { systemPrompt, prompt } = this.buildPrompt(input.messages)
+    const systemPromptFilePath = systemPrompt ? await writeTempSystemPromptFile(systemPrompt) : undefined
+    try {
+      return await this.streamClaudeCliProcess(input, prompt, systemPromptFilePath)
+    } finally {
+      if (systemPromptFilePath) await rm(join(systemPromptFilePath, ".."), { recursive: true, force: true })
+    }
+  }
+
+  private async streamClaudeCliProcess(
+    input: ModelStreamInput,
+    prompt: string,
+    systemPromptFilePath: string | undefined,
+  ): Promise<ModelGenerateResult> {
     const args = buildClaudeCliArgs({
       model: this._model,
-      systemPrompt,
+      systemPromptFilePath,
       outputFormat: "stream-json",
     })
 
@@ -1146,6 +1204,16 @@ export class ClaudeCliModelProvider implements ModelProvider {
     let stderr = ""
     child.stderr!.on("data", (chunk: string) => {
       stderr += chunk
+    })
+
+    // Unlike generate() above, this path had no "error" listener at all —
+    // a spawn failure (binary not found) still closes the stream and falls
+    // through to the exit-code check below, surfacing as an opaque
+    // "exited with code -2" (the errno some environments use as a synthetic
+    // close code) instead of a real explanation.
+    let spawnError: NodeJS.ErrnoException | undefined
+    child.on("error", (err: NodeJS.ErrnoException) => {
+      spawnError = err
     })
 
     let buffer = ""
@@ -1196,6 +1264,9 @@ export class ClaudeCliModelProvider implements ModelProvider {
     })
 
     if (exitCode !== 0) {
+      if (isClaudeCliNotFoundError(spawnError) || (!lastResultError && !stderr)) {
+        throw new Error(CLAUDE_CLI_NOT_FOUND_MESSAGE)
+      }
       throw new Error(`claude CLI exited with code ${exitCode}: ${lastResultError || stderr}`)
     }
 
