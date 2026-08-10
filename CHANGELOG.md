@@ -4,6 +4,16 @@ All notable changes to TOFO are documented here. Format follows [Keep a Changelo
 
 ## [Unreleased]
 
+### Added
+- Token usage and cost tracking: per-synthetic and per-project totals (persisted across sessions, in the Report tab), plus a lifetime total across every project in Settings
+- Startup progress indicator (replaces the static "Starting…" placeholder) on desktop launch
+
+### Fixed
+- Desktop app could hang on launch (server startup ran on the main UI thread) and could leave an orphaned server process running after quit
+- "Site can't be reached" could appear on a fast first launch — the app now waits for a real HTTP response, not just an open port
+- Claude CLI provider could fail with `spawn ENOENT` (Windows npm `.cmd` shims, macOS/Linux PATH) or `spawn ENAMETOOLONG` on re-runs with a lot of accumulated context
+- SQLite "database is locked" and a `User.email` constraint race, both only reproducible under `next build`'s parallel workers
+
 ## [0.1.0] — 2026-08-07
 
 Initial open-source release.

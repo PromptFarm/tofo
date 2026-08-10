@@ -1,5 +1,6 @@
 import type { Project as PlanningProject } from "@/lib/planning/types";
 import type { SyntheticGraphPayload, SyntheticOutputJson } from "@/lib/thinking-graph/server/types";
+import { calculateCostUsd, type TokenUsage } from "@/lib/thinking-graph/tokenPricing";
 import {
   normalizeProjectDetail,
   normalizeProjectSummary,
@@ -261,6 +262,102 @@ export async function getProjectById(
     .prepare(`SELECT * FROM PromptProject WHERE id = ? AND userId = ?`)
     .get(projectId, userId) as ProjectRow | undefined;
   return row ? normalizeProjectDetail(mapProjectDetail(row)) : null;
+}
+
+// ─── Token usage / cost summaries ──────────────────────────────────────────────
+
+export type SyntheticUsageSummary = {
+  syntheticId: string;
+  syntheticName: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  costUsd: number;
+};
+
+export type UsageSummary = {
+  bySynthetic: SyntheticUsageSummary[];
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalTokens: number;
+  totalCostUsd: number;
+};
+
+type UsageRow = {
+  syntheticId: string;
+  syntheticName: string;
+  model: string | null;
+  tokenUsage: string | null;
+};
+
+function summarizeUsageRows(rows: UsageRow[]): UsageSummary {
+  const bySyntheticMap = new Map<string, SyntheticUsageSummary>();
+
+  for (const row of rows) {
+    const modelInfo = fromJson<{ model?: string } | null>(row.model, null);
+    const usage = fromJson<TokenUsage | null>(row.tokenUsage, null);
+    if (!usage) continue;
+
+    const promptTokens = usage.promptTokens ?? 0;
+    const completionTokens = usage.completionTokens ?? 0;
+    const totalTokens = usage.totalTokens ?? promptTokens + completionTokens;
+    const costUsd = calculateCostUsd(modelInfo?.model, usage) ?? 0;
+
+    const existing = bySyntheticMap.get(row.syntheticId);
+    if (existing) {
+      existing.promptTokens += promptTokens;
+      existing.completionTokens += completionTokens;
+      existing.totalTokens += totalTokens;
+      existing.costUsd += costUsd;
+      existing.syntheticName = row.syntheticName;
+    } else {
+      bySyntheticMap.set(row.syntheticId, {
+        syntheticId: row.syntheticId,
+        syntheticName: row.syntheticName,
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        costUsd,
+      });
+    }
+  }
+
+  const bySynthetic = [...bySyntheticMap.values()].sort((a, b) => b.totalTokens - a.totalTokens);
+  const totals = bySynthetic.reduce(
+    (acc, s) => ({
+      totalPromptTokens: acc.totalPromptTokens + s.promptTokens,
+      totalCompletionTokens: acc.totalCompletionTokens + s.completionTokens,
+      totalTokens: acc.totalTokens + s.totalTokens,
+      totalCostUsd: acc.totalCostUsd + s.costUsd,
+    }),
+    { totalPromptTokens: 0, totalCompletionTokens: 0, totalTokens: 0, totalCostUsd: 0 },
+  );
+
+  return { bySynthetic, ...totals };
+}
+
+// Reads directly from ThinkingGraphSyntheticOutput — every completed run's
+// per-synthetic output, across every iteration, so this is the project's
+// full lifetime usage, not just the latest run (see RunStats in
+// run-context.tsx / useThinkingGraphRuntime.ts for the latest-run-only view).
+export async function getProjectTokenUsage(userId: string, projectId: string): Promise<UsageSummary> {
+  const rows = getDb()
+    .prepare(
+      `SELECT syntheticId, syntheticName, model, tokenUsage
+       FROM ThinkingGraphSyntheticOutput
+       WHERE projectId = ? AND userId = ?`,
+    )
+    .all(projectId, userId) as UsageRow[];
+  return summarizeUsageRows(rows);
+}
+
+// Same as getProjectTokenUsage but across every project this user has —
+// the app-wide lifetime total.
+export async function getLifetimeTokenUsage(userId: string): Promise<UsageSummary> {
+  const rows = getDb()
+    .prepare(`SELECT syntheticId, syntheticName, model, tokenUsage FROM ThinkingGraphSyntheticOutput WHERE userId = ?`)
+    .all(userId) as UsageRow[];
+  return summarizeUsageRows(rows);
 }
 
 export async function updateProjectIdea(userId: string, projectId: string, idea: string): Promise<void> {

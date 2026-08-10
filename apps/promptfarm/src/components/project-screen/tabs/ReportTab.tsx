@@ -18,6 +18,7 @@ import { PlanTab } from "./PlanTab";
 import { shouldShowReportLoading } from "./reportLoadingState";
 import { shouldResetSelectedRun } from "./selectedRunState";
 import { RecommendSolutionModal } from "@/components/thinking-graph/tabs/RecommendSolutionModal";
+import { ProjectUsageSummary } from "./ProjectUsageSummary";
 
 // ── Color helpers ─────────────────────────────────────────────────────────────
 
@@ -551,6 +552,8 @@ export function ReportTab({
             </div>
           </div>
         </div>
+
+        <ProjectUsageSummary projectId={projectId} refreshKey={simulationHistory.length} />
 
         {/* Section tabs */}
         <div className="flex border-b border-[var(--border)] px-7 bg-[var(--surface-low)] sticky top-0 z-10">
