@@ -6,6 +6,8 @@ Thanks for taking a look. TOFO is early — the fastest way to help right now is
 
 For anything more than a small fix, open an issue first describing what you want to change and why. This repo moves fast and the "what's real vs mocked" line (see the README) shifts often — a quick check avoids work that collides with something already in progress.
 
+Working with an AI coding agent (Claude Code or otherwise)? Point it at [CLAUDE.md](CLAUDE.md) first — it's a list of real gotchas this repo has already been bitten by (Windows path limits, SQLite race conditions, subprocess-spawning quirks) plus this project's workflow conventions. Claude Code reads it automatically; other tools may need to be told about it explicitly.
+
 ## Development setup
 
 ```bash

@@ -23,3 +23,4 @@
 - [ ] PR title follows Conventional Commits (`type(scope): description`)
 - [ ] `pnpm --dir apps/promptfarm test` passes locally
 - [ ] Tests added/updated for non-UI changes in `apps/promptfarm/src`
+- [ ] Docs updated if this changes user-visible behavior, a documented API/flag, or the build/release process (README, CHANGELOG, docs/ARCHITECTURE.md, docs/SYNTHETICS_GUIDE.md, docs/RELEASING.md, or CLAUDE.md — see CLAUDE.md's "docs move with the code" rule)
