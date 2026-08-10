@@ -23,6 +23,10 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together
 - Describe *why*, not just *what*, in the PR description — the reviewer can read the diff.
 - **PR title must follow [Conventional Commits](https://www.conventionalcommits.org/):** `type(scope): description`, e.g. `fix(desktop): handle missing Node.js gracefully` or `feat(settings): add Gemini provider`. CI checks this automatically. Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`. Scope is optional but encouraged (`desktop`, `promptfarm`, `settings`, `ci`, ...).
 
+## Cutting a release
+
+Maintainer-only process for publishing a new desktop build — see [docs/RELEASING.md](docs/RELEASING.md).
+
 ## Reporting bugs
 
 Include: what you did, what you expected, what happened instead, and your platform (Windows/macOS, TOFO version). If it's a simulation/model issue, mention which provider (Ollama / Claude API / Claude CLI) — behavior differs meaningfully between them.
