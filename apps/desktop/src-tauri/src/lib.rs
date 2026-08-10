@@ -43,6 +43,24 @@ fn show_startup_error(window: &tauri::WebviewWindow, title: &str, message: &str,
   let _ = window.eval(&js);
 }
 
+// Updates the placeholder's #status text in place — same eval-based
+// technique as show_startup_error, just for progress instead of a terminal
+// error. Called from the background startup thread, so it hops back to the
+// main thread itself rather than assuming the caller already has.
+fn update_startup_status(app_handle: &tauri::AppHandle, message: &str) {
+  let app_handle_for_dispatch = app_handle.clone();
+  let main_thread_handle = app_handle.clone();
+  let message = message.to_string();
+  let _ = app_handle_for_dispatch.run_on_main_thread(move || {
+    let Some(window) = main_thread_handle.get_webview_window("main") else { return };
+    let js = format!(
+      "var el = document.getElementById('status'); if (el) el.textContent = {};",
+      serde_json::to_string(&message).unwrap_or_default()
+    );
+    let _ = window.eval(&js);
+  });
+}
+
 // A successful TCP connect only proves the OS-level listener is bound — for
 // Next.js in particular there's a real gap between "the port accepts
 // connections" and "the server can actually answer a request" (still
@@ -156,6 +174,10 @@ fn ensure_server_extracted(app: &tauri::AppHandle) -> Option<std::path::PathBuf>
   }
 
   log::info!("extracting bundled server to {:?}", extract_dir);
+  // Only shown for the genuinely slow path (first run, or right after an
+  // update) — ordinary launches skip this whole branch via the
+  // already_extracted check above.
+  update_startup_status(app, "Setting up (first run)…");
   let _ = std::fs::remove_dir_all(&extract_dir);
   if let Err(e) = std::fs::create_dir_all(&extract_dir) {
     log::error!("failed to create extraction dir {:?}: {e}", extract_dir);
@@ -299,11 +321,13 @@ pub fn run() {
         // which Tauri's webview APIs require.
         let app_handle = app.handle().clone();
         std::thread::spawn(move || {
+          update_startup_status(&app_handle, "Starting server…");
           let node_missing = resolve_node_path().is_none() && Command::new("node").arg("--version").output().is_err();
           let child = spawn_production_server(&app_handle);
           let spawn_failed = child.is_none();
           app_handle.manage(Mutex::new(ServerProcess(child)));
 
+          update_startup_status(&app_handle, "Connecting…");
           let server_ready = !spawn_failed && wait_for_server_ready(SERVER_PORT, Duration::from_secs(30));
           let main_thread_handle = app_handle.clone();
           let _ = app_handle.run_on_main_thread(move || {
