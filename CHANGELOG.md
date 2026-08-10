@@ -9,11 +9,11 @@ All notable changes to TOFO are documented here. Format follows [Keep a Changelo
 Initial open-source release.
 
 ### Added
-- Graph canvas: describe an idea, populate it with synthetic teammates (Manager, Designer, Engineer, QA, Marketing, Finance, Legal), connect them with dependency/conflict/influence/validation edges
+- Graph canvas: describe an idea, a Director agent proposes a team from a ~90-persona catalog (business/startup, game dev, education, health/fitness), connect them with structural/tension/oversight/amplification edges
 - Simulation engine: dependency-ordered agent runs, partial re-run when you edit a node mid-conversation, run versioning/history
 - Three model providers: local Ollama, Anthropic API key, or your `claude` CLI subscription — picked once in Settings, stored locally
 - Local SQLite persistence, no cloud backend, no account
-- Native desktop shell (Windows portable `.zip`, macOS `.dmg`) with a bundled portable Node.js runtime — no system dependencies required
+- Native desktop shell (Windows portable `.zip`, macOS `.dmg`, Linux `.AppImage`) with a bundled portable Node.js runtime — no system dependencies required
 - Final Report: executive brief, per-agent summaries, decision matrix, conflict map
 
 [Unreleased]: https://github.com/PromptFarm/tofo/compare/desktop-v0.1.0...HEAD

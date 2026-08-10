@@ -1,8 +1,10 @@
 # TOFO — Thousand Opinions For One
 
-TOFO is a simulated team for solo builders. You describe an idea, populate a graph canvas with synthetic teammates — Manager, Designer, Engineer, QA, Marketing, Finance, Legal — connect them with dependencies and conflicts, and run a simulation. Each agent reasons through your idea from its own domain, in dependency order, and produces an opinion: summary, risks, recommendation. You can chat with any individual agent to push back or dig deeper, and TOFO regenerates the affected part of the graph. At the end you get a Final Report: executive brief, per-agent summaries, a decision matrix, and a map of where your agents disagree.
+TOFO is a simulated team for solo builders. You describe an idea, and a Director agent reads it and proposes a small team of synthetic teammates suited to it — pulled from a catalog spanning business/startup, game dev, education, and health/fitness roles, each with a visible reason and confidence score. Populate the graph canvas with them (or add your own), connect them with dependencies and conflicts, and run a simulation. Each agent reasons through your idea from its own domain, in dependency order, and produces an opinion: summary, risks, recommendation. You can chat with any individual agent to push back or dig deeper, and TOFO regenerates the affected part of the graph. At the end you get a Final Report: executive brief, per-agent summaries, a decision matrix, and a map of where your agents disagree.
 
 It runs as a native desktop app on your own machine, talking to Claude (your subscription or an API key) or a local Ollama model — no account, no cloud backend.
+
+TOFO simulates a team so you can find blind spots fast — it's not a replacement for evidence from real users, customers, or domain experts. Treat a run as a starting hypothesis to go validate, not a verdict.
 
 [![CI](https://github.com/PromptFarm/tofo/actions/workflows/ci.yml/badge.svg)](https://github.com/PromptFarm/tofo/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/PromptFarm/tofo)](https://github.com/PromptFarm/tofo/releases/latest)
