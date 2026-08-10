@@ -9,6 +9,7 @@ import type {
   ProjectSpec,
 } from "@/lib/thinking-graph/server/types"
 import type { SyntheticEdge } from "@/lib/planning/types"
+import type { UsageSummary } from "@/lib/db-client"
 
 type ErrorPayload = {
   error?: string
@@ -155,6 +156,26 @@ export async function saveProjectThinkingGraphSession(
   }
 
   return response.json()
+}
+
+export async function fetchProjectTokenUsage(projectId: string): Promise<UsageSummary> {
+  const response = await fetch(`/api/projects/${projectId}/usage`, { method: "GET" })
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as ErrorPayload | null
+    throw new Error(payload?.error ?? "Failed to load project token usage.")
+  }
+  const payload = (await response.json()) as { usage: UsageSummary }
+  return payload.usage
+}
+
+export async function fetchLifetimeTokenUsage(): Promise<UsageSummary> {
+  const response = await fetch("/api/usage", { method: "GET" })
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as ErrorPayload | null
+    throw new Error(payload?.error ?? "Failed to load lifetime token usage.")
+  }
+  const payload = (await response.json()) as { usage: UsageSummary }
+  return payload.usage
 }
 
 export async function listProjectFiles(projectId: string): Promise<ProjectFileSummary[]> {

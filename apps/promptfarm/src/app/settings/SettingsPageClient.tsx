@@ -2,13 +2,23 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Cpu, KeyRound, Terminal } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Cpu, KeyRound, Terminal } from "lucide-react";
 import type { ModelProviderKind, ModelProviderSettings } from "@/lib/sqlite/appSettings";
+import type { UsageSummary } from "@/lib/db-client";
 import { cn } from "@/lib/utils";
 
 type Props = {
   initialSettings: ModelProviderSettings | null;
+  lifetimeUsage: UsageSummary;
 };
+
+function formatTokens(n: number) {
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+}
+
+function formatUsd(n: number) {
+  return n < 0.01 && n > 0 ? "<$0.01" : `$${n.toFixed(2)}`;
+}
 
 const PROVIDER_OPTIONS: Array<{
   value: ModelProviderKind;
@@ -36,10 +46,11 @@ const PROVIDER_OPTIONS: Array<{
   },
 ];
 
-export function SettingsPageClient({ initialSettings }: Props) {
+export function SettingsPageClient({ initialSettings, lifetimeUsage }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const firstRun = searchParams.get("firstRun") === "1";
+  const [usageExpanded, setUsageExpanded] = useState(false);
 
   const [provider, setProvider] = useState<ModelProviderKind>(initialSettings?.provider ?? "ollama");
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState(initialSettings?.ollamaBaseUrl ?? "http://localhost:11434/v1");
@@ -202,6 +213,34 @@ export function SettingsPageClient({ initialSettings }: Props) {
           </button>
           {saved && !firstRun && <span className="text-sm text-[#34d399]">Saved</span>}
         </div>
+
+        {lifetimeUsage.totalTokens > 0 && (
+          <div className="mt-10 border-t border-[var(--surface-container)] pt-6">
+            <button
+              type="button"
+              onClick={() => setUsageExpanded((v) => !v)}
+              className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer p-0 text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]"
+            >
+              {usageExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              <span className="text-sm font-medium">
+                Usage: {formatTokens(lifetimeUsage.totalTokens)} tokens · {formatUsd(lifetimeUsage.totalCostUsd)}
+              </span>
+              <span className="text-xs opacity-60">— across every project</span>
+            </button>
+            {usageExpanded && (
+              <ul className="mt-3 ml-[20px] flex flex-col gap-1.5 text-xs font-mono">
+                {lifetimeUsage.bySynthetic.map((s) => (
+                  <li key={s.syntheticId} className="flex items-center gap-2 text-[var(--t3)]">
+                    <span className="min-w-[160px] truncate text-[var(--on-surface-variant)]">{s.syntheticName}</span>
+                    <span>{formatTokens(s.totalTokens)} tokens</span>
+                    <span className="opacity-40">·</span>
+                    <span>{formatUsd(s.costUsd)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
