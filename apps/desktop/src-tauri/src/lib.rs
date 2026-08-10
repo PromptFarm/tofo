@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
@@ -42,15 +43,43 @@ fn show_startup_error(window: &tauri::WebviewWindow, title: &str, message: &str,
   let _ = window.eval(&js);
 }
 
+// A successful TCP connect only proves the OS-level listener is bound — for
+// Next.js in particular there's a real gap between "the port accepts
+// connections" and "the server can actually answer a request" (still
+// finishing its own async startup). Navigating the webview the instant the
+// port opens raced that gap and showed the browser's own "site can't be
+// reached" error on a genuinely working install; a manual refresh a moment
+// later succeeded because the server had caught up by then. Doing an actual
+// HTTP round-trip (not just a socket connect) closes that gap — no new
+// dependency needed, since it's a handful of bytes over the same TcpStream.
 fn wait_for_server_ready(port: u16, timeout: Duration) -> bool {
   let deadline = std::time::Instant::now() + timeout;
   while std::time::Instant::now() < deadline {
-    if TcpStream::connect(("127.0.0.1", port)).is_ok() {
+    if http_get_succeeds(port) {
       return true;
     }
     std::thread::sleep(Duration::from_millis(200));
   }
   false
+}
+
+fn http_get_succeeds(port: u16) -> bool {
+  let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) else {
+    return false;
+  };
+  let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+  let request = format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n");
+  if stream.write_all(request.as_bytes()).is_err() {
+    return false;
+  }
+  let mut response = [0u8; 16];
+  match stream.read(&mut response) {
+    // Any real HTTP response line starts with "HTTP/1." — that's enough to
+    // know the server itself answered, regardless of status code (even a
+    // 404 or 500 means it's up and routing requests).
+    Ok(n) if n > 0 => response[..n].starts_with(b"HTTP/1."),
+    _ => false,
+  }
 }
 
 // GUI apps launched from Finder/Dock/`open` do NOT inherit the PATH set up
